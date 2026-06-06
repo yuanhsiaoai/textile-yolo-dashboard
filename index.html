@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>織品文物劣化偵測 · 模型平台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6fb; --panel:#ffffff; --panel-2:#fbfcfe; --text:#1f2733; --muted:#697586;
+  --border:#e3e8f0; --accent:#1f4e79; --accent-2:#b87333; --good:#1f8a52; --bad:#c0492f;
+  --shadow:0 1px 3px rgba(20,30,50,.08),0 8px 24px rgba(20,30,50,.06); --radius:14px;
+  --grid:#eef1f6; --chip:#eef2f8;
+}
+[data-theme="dark"]{
+  --bg:#0c1019; --panel:#141a26; --panel-2:#0f1521; --text:#e6ecf5; --muted:#8b97ab;
+  --border:#222c3d; --accent:#4aa3ff; --accent-2:#e0a96d; --good:#37d07f; --bad:#ff6b57;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35); --grid:#1b2433; --chip:#1a2230;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+header{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--panel) 88%,transparent);
+  backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--border)}
+.bar{max-width:1240px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:18px}
+.brand{display:flex;flex-direction:column;line-height:1.15}
+.brand b{font-size:17px;letter-spacing:.2px}
+.brand span{font-size:12px;color:var(--muted)}
+nav{display:flex;gap:4px;margin-left:8px;flex-wrap:wrap}
+nav button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;font-weight:600;
+  padding:9px 14px;border-radius:10px;cursor:pointer;transition:.15s}
+nav button:hover{color:var(--text);background:var(--chip)}
+nav button.active{color:#fff;background:var(--accent)}
+[data-theme="dark"] nav button.active{color:#06121f}
+.spacer{flex:1}
+.toggle{border:1px solid var(--border);background:var(--panel-2);color:var(--text);border-radius:10px;
+  width:40px;height:36px;cursor:pointer;font-size:16px}
+main{max-width:1240px;margin:0 auto;padding:26px 22px 70px}
+.tab{display:none;animation:fade .25s ease}
+.tab.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2.section{font-size:15px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin:30px 2px 12px}
+h2.section:first-child{margin-top:4px}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.kpi{padding:18px 20px}
+.kpi .label{font-size:12.5px;color:var(--muted);font-weight:600}
+.kpi .val{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:.3px}
+.kpi .sub{font-size:12px;color:var(--muted);margin-top:3px}
+.kpi .val.accent{color:var(--accent)}
+.panel{padding:20px 22px}
+.panel h3{margin:0 0 14px;font-size:16px;display:flex;align-items:center;gap:8px}
+.note{font-size:12.5px;color:var(--muted)}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted)}
+.badge.arch{color:var(--accent)} .badge.size{color:var(--accent-2)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;color:var(--muted);font-weight:700;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
+th:hover{color:var(--text)}
+tbody tr:hover{background:var(--panel-2)}
+tr.best td{background:color-mix(in srgb,var(--good) 12%,transparent)}
+.mono{font-variant-numeric:tabular-nums}
+.barcell{position:relative}
+.barcell .fill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--accent) 22%,transparent);border-radius:4px;z-index:0}
+.barcell span{position:relative;z-index:1}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.row2,.row3{grid-template-columns:1fr}}
+canvas{max-width:100%}
+select,input[type=text],input[type=number]{font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--border);
+  background:var(--panel-2);color:var(--text);border-radius:10px;outline:none}
+select:focus,input:focus{border-color:var(--accent)}
+label.fld{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted);font-weight:600}
+.imgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.imgbox{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.imgbox .cap{font-size:12px;color:var(--muted);padding:8px 10px;border-top:1px solid var(--border)}
+.imgbox img{width:100%;display:block;cursor:zoom-in;background:#fff}
+.samples{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.samples figure{margin:0}
+.samples figcaption{font-size:11px;color:var(--muted);text-align:center;padding:4px}
+.controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+button.primary{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer}
+[data-theme="dark"] button.primary{color:#06121f}
+button.primary:disabled{opacity:.55;cursor:not-allowed}
+button.ghost{border:1px solid var(--border);background:var(--panel-2);color:var(--text);font:inherit;font-weight:600;padding:10px 16px;border-radius:10px;cursor:pointer}
+.drop{border:2px dashed var(--border);border-radius:14px;padding:30px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s}
+.drop.hl{border-color:var(--accent);background:var(--panel-2)}
+.status{font-size:13px;padding:10px 14px;border-radius:10px;background:var(--chip);color:var(--muted);margin-top:12px}
+.status.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.status.ok{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+.det-list{font-size:13px}
+.det-list .pill{display:inline-flex;justify-content:space-between;gap:14px;width:100%;padding:7px 12px;border-bottom:1px solid var(--border)}
+.slider-row{display:flex;align-items:center;gap:14px}
+input[type=range]{flex:1;accent-color:var(--accent)}
+.lightbox{position:fixed;inset:0;background:rgba(5,8,14,.85);display:none;align-items:center;justify-content:center;z-index:100;padding:30px}
+.lightbox.show{display:flex}
+.lightbox img{max-width:95vw;max-height:92vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.legend{font-size:12px;color:var(--muted);margin-top:6px}
+.foot{max-width:1240px;margin:30px auto 0;padding:0 22px;color:var(--muted);font-size:12px}
+.pre-warn{background:color-mix(in srgb,var(--accent-2) 14%,transparent);border:1px solid color-mix(in srgb,var(--accent-2) 40%,transparent);
+  color:var(--text);padding:10px 14px;border-radius:10px;font-size:12.5px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <b>織品文物劣化偵測 · 模型平台</b>
+      <span>輔仁大學中華服飾文化中心 · YOLO 多模型比較與即時預測</span>
+    </div>
+    <nav id="nav">
+      <button data-tab="overview" class="active">總覽</button>
+      <button data-tab="model">模型細節</button>
+      <button data-tab="cls">類別分析</button>
+      <button data-tab="predict">即時預測</button>
+    </nav>
+    <span class="spacer"></span>
+    <button class="toggle" id="themeBtn" title="切換深/淺色">🌙</button>
+  </div>
+</header>
+
+<main>
+  <!-- OVERVIEW -->
+  <section class="tab active" id="overview">
+    <div class="grid kpis" id="kpis"></div>
+    <h2 class="section">模型排行榜（獨立測試集）</h2>
+    <div class="card panel" style="overflow:auto">
+      <table id="leaderboard"><thead></thead><tbody></tbody></table>
+      <p class="note" style="margin:12px 2px 0">點欄位標題可排序。色條長度對應數值。整體 mAP 受極端類別不平衡與訓練輪數影響，請搭配「類別分析」的公允視圖判讀。</p>
+    </div>
+    <div class="row2">
+      <div class="card panel"><h3>各模型 mAP 比較</h3><canvas id="barChart" height="220"></canvas></div>
+      <div class="card panel"><h3>預處理 A/B 對照（mAP50-95）</h3><canvas id="abChart" height="220"></canvas>
+        <p class="legend">同一架構：原圖 (none) vs CLAHE+去噪。</p></div>
+    </div>
+    <h2 class="section">模型尺寸軸（YOLO11 n→s→m→l）</h2>
+    <div class="card panel"><canvas id="sizeChart" height="150"></canvas></div>
+  </section>
+
+  <!-- MODEL DETAIL -->
+  <section class="tab" id="model">
+    <div class="controls">
+      <label class="fld">選擇模型<select id="modelSel"></select></label>
+      <div id="modelMeta" class="grid kpis" style="flex:1;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px"></div>
+    </div>
+    <div class="row2">
+      <div class="card panel"><h3>訓練曲線 · mAP</h3><canvas id="curveMap" height="200"></canvas></div>
+      <div class="card panel"><h3>訓練曲線 · 損失</h3><canvas id="curveLoss" height="200"></canvas></div>
+    </div>
+    <h2 class="section">評估圖（測試集）</h2>
+    <div class="imgs" id="modelImgs"></div>
+    <h2 class="section">預測樣本（預測 vs 標註）</h2>
+    <div class="imgs" id="modelSamples"></div>
+    <h2 class="section">每類別指標</h2>
+    <div class="card panel" style="overflow:auto"><table id="modelPC"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- CLASS -->
+  <section class="tab" id="cls">
+    <div class="card panel">
+      <h3>公允 mAP：依「整體樣本數」門檻篩選類別</h3>
+      <p class="note">整體 mAP 會被大量稀有/零樣本類別拉低。拖動門檻，只計入 <b>instances ≥ N</b> 的類別，重算各模型的巨集平均（macro）mAP。</p>
+      <div class="slider-row" style="margin:14px 0">
+        <span class="note">門檻 N =</span><input type="range" id="instSlider" min="0" max="500" value="50" step="10">
+        <span class="mono" id="instVal" style="font-weight:700;min-width:130px">≥ 50（保留 ? 類）</span>
+      </div>
+      <div style="overflow:auto"><table id="fairTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <h2 class="section">逐類別指標</h2>
+    <div class="controls">
+      <label class="fld">模型<select id="clsModelSel"></select></label>
+    </div>
+    <div class="card panel" style="overflow:auto"><table id="clsTable"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- PREDICT -->
+  <section class="tab" id="predict">
+    <div class="pre-warn">⚙️ 即時預測由後端（Hugging Face Space）執行。免費 Space 閒置會休眠，<b>首次請求可能需等待 30–60 秒冷啟動</b>，屬正常。</div>
+    <div class="row2">
+      <div class="card panel">
+        <h3>設定</h3>
+        <label class="fld" style="margin-bottom:12px">後端 Space URL
+          <input type="text" id="spaceUrl" placeholder="https://USER-textile-yolo-predict.hf.space"></label>
+        <label class="fld" style="margin-bottom:12px">選擇模型<select id="predModelSel"></select></label>
+        <label class="fld">信心門檻 (conf) = <span id="confVal" class="mono">0.25</span>
+          <input type="range" id="confSlider" min="0.05" max="0.9" value="0.25" step="0.05"></label>
+        <div class="drop" id="drop" style="margin-top:14px">
+          <div>📷 點此選圖，或將圖片拖曳到這裡</div>
+          <div class="note" style="margin-top:6px">支援 JPG / PNG</div>
+          <input type="file" id="fileInput" accept="image/*" hidden>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="primary" id="predBtn" disabled>開始預測</button>
+          <button class="ghost" id="clearBtn">清除</button>
+        </div>
+        <div class="status" id="predStatus">尚未選圖。</div>
+      </div>
+      <div class="card panel">
+        <h3>結果</h3>
+        <div class="imgbox" style="margin-bottom:14px"><img id="resultImg" alt="預測結果" style="display:none"><div id="resultCap" class="cap" style="display:none"></div></div>
+        <div id="detWrap" style="display:none">
+          <h3 style="font-size:14px">偵測清單 <span class="badge" id="detCount"></span></h3>
+          <div class="det-list" id="detList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</main>
+
+<div class="lightbox" id="lightbox"><img id="lightboxImg" alt=""></div>
+
+<script src="config.js"></script>
+<script>
+const fmt = (v,d=3)=> v==null||isNaN(v) ? '—' : (+v).toFixed(d);
+const pct = v=> v==null||isNaN(v) ? '—' : (v*100).toFixed(1)+'%';
+const $ = s=>document.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+let DATA=null, charts={};
+const themeAccent=()=>getComputedStyle(document.body).getPropertyValue('--accent').trim();
+const themeAccent2=()=>getComputedStyle(document.body).getPropertyValue('--accent-2').trim();
+const gridCol=()=>getComputedStyle(document.body).getPropertyValue('--grid').trim();
+const txtCol=()=>getComputedStyle(document.body).getPropertyValue('--muted').trim();
+
+/* ---------- theme ---------- */
+function setTheme(t){
+  document.body.setAttribute('data-theme',t);
+  $('#themeBtn').textContent = t==='dark'?'☀️':'🌙';
+  localStorage.setItem('tx_theme',t);
+  if(DATA) renderAllCharts();
+}
+$('#themeBtn').onclick=()=>setTheme(document.body.getAttribute('data-theme')==='dark'?'light':'dark');
+
+/* ---------- tabs (含 #hash 深連結) ---------- */
+function activateTab(name){
+  const b=document.querySelector(`#nav button[data-tab="${name}"]`); if(!b)return;
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.id===name));
+}
+$('#nav').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  location.hash=b.dataset.tab; activateTab(b.dataset.tab);
+});
+window.addEventListener('hashchange',()=>activateTab((location.hash||'#overview').slice(1)));
+
+/* ---------- lightbox ---------- */
+const lb=$('#lightbox');
+document.addEventListener('click',e=>{
+  if(e.target.tagName==='IMG'&&e.target.closest('.imgbox')){ $('#lightboxImg').src=e.target.src; lb.classList.add('show'); }
+});
+lb.onclick=()=>lb.classList.remove('show');
+
+/* ---------- helpers ---------- */
+const groupBadge=g=> `<span class="badge ${g}">${g==='arch'?'架構':g==='size'?'尺寸':g}</span>`;
+const prettyModel=r=> `${r.model} <span class="note">/ ${r.preprocess}</span>`;
+
+/* ================= OVERVIEW ================= */
+function renderOverview(){
+  const o=DATA.overall, best=o[0];
+  const kpis=[
+    ['最佳模型', best.model, best.preprocess+' · '+(best.group==='arch'?'架構':'尺寸'),'accent'],
+    ['最高 mAP50-95', fmt(best['mAP50-95']), best.run_name,'accent'],
+    ['最高 mAP50', fmt(Math.max(...o.map(x=>x.mAP50))),'測試集',''],
+    ['模型數', o.length, '架構 × 預處理 + 尺寸軸',''],
+    ['訓練輪數', DATA.epochs_note+' epochs', '此批結果',''],
+  ];
+  $('#kpis').innerHTML = kpis.map(k=>`<div class="card kpi"><div class="label">${k[0]}</div><div class="val ${k[3]}">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
+
+  // leaderboard
+  const cols=[['model','模型'],['preprocess','預處理'],['group','軸'],['mAP50','mAP50'],['mAP50-95','mAP50-95'],['precision','Precision'],['recall','Recall']];
+  buildSortableTable($('#leaderboard'), cols, o, 'mAP50-95', (r,key)=>{
+    if(key==='model') return prettyModel(r);
+    if(key==='group') return groupBadge(r.group);
+    if(key==='preprocess') return r.preprocess;
+    const max=Math.max(...o.map(x=>x[key]||0))||1;
+    const w=((r[key]||0)/max*100).toFixed(0);
+    return `<div class="barcell"><div class="fill" style="width:${w}%"></div><span class="mono">${fmt(r[key])}</span></div>`;
+  }, 0);
+  renderAllCharts();
+}
+
+function buildSortableTable(table, cols, rows, defKey, cellFn, bestIdx){
+  let sortKey=defKey, asc=false;
+  const thead=table.querySelector('thead'), tbody=table.querySelector('tbody');
+  function draw(){
+    const sorted=[...rows].sort((a,b)=>{
+      let x=a[sortKey],y=b[sortKey];
+      if(typeof x==='string'){return asc?(''+x).localeCompare(y):(''+y).localeCompare(x);}
+      return asc?(x-y):(y-x);
+    });
+    thead.innerHTML='<tr>'+cols.map(c=>`<th data-k="${c[0]}">${c[1]}${c[0]===sortKey?(asc?' ▲':' ▼'):''}</th>`).join('')+'</tr>';
+    tbody.innerHTML=sorted.map((r,i)=>`<tr class="${i===bestIdx&&sortKey===defKey?'best':''}">`+
+      cols.map(c=>`<td>${cellFn(r,c[0])}</td>`).join('')+'</tr>').join('');
+    thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k===sortKey)asc=!asc;else{sortKey=k;asc=false;}draw();});
+  }
+  draw();
+}
+
+function mkChart(id,cfg){ if(charts[id])charts[id].destroy(); charts[id]=new Chart($('#'+id),cfg); }
+function baseOpts(){const g=gridCol(),t=txtCol();return{responsive:true,plugins:{legend:{labels:{color:t,font:{size:11}}}},
+  scales:{x:{ticks:{color:t,font:{size:10}},grid:{color:g}},y:{ticks:{color:t,font:{size:10}},grid:{color:g},beginAtZero:true}}};}
+
+function renderAllCharts(){
+  const o=[...DATA.overall].sort((a,b)=>b['mAP50-95']-a['mAP50-95']);
+  const labels=o.map(r=>r.model+'\n'+r.preprocess.replace('clahe+denoise','clahe+dn'));
+  const ac=themeAccent(),ac2=themeAccent2();
+  mkChart('barChart',{type:'bar',data:{labels,datasets:[
+    {label:'mAP50',data:o.map(r=>r.mAP50),backgroundColor:ac+'cc'},
+    {label:'mAP50-95',data:o.map(r=>r['mAP50-95']),backgroundColor:ac2+'cc'}]},
+    options:{...baseOpts(),scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{color:txtCol(),font:{size:9},maxRotation:60,minRotation:45}}}}});
+
+  // A/B by architecture
+  const archs=[...new Set(DATA.overall.filter(r=>r.group==='arch').map(r=>r.model))];
+  const get=(m,p)=>{const r=DATA.overall.find(x=>x.model===m&&x.preprocess===p&&x.group==='arch');return r?r['mAP50-95']:null;};
+  mkChart('abChart',{type:'bar',data:{labels:archs,datasets:[
+    {label:'none',data:archs.map(m=>get(m,'none')),backgroundColor:ac+'cc'},
+    {label:'clahe+denoise',data:archs.map(m=>get(m,'clahe+denoise')),backgroundColor:ac2+'cc'}]},options:baseOpts()});
+
+  // size axis
+  const order=['yolo11n','yolo11s','yolo11m','yolo11l'];
+  const sizeRuns=order.map(m=>DATA.overall.find(r=>r.model===m&&(r.group==='size'||(m==='yolo11l'&&r.preprocess==='none'&&r.group==='arch'))));
+  mkChart('sizeChart',{type:'line',data:{labels:order,datasets:[
+    {label:'mAP50',data:sizeRuns.map(r=>r?r.mAP50:null),borderColor:ac,backgroundColor:ac+'33',tension:.3,fill:true},
+    {label:'mAP50-95',data:sizeRuns.map(r=>r?r['mAP50-95']:null),borderColor:ac2,backgroundColor:ac2+'22',tension:.3,fill:true}]},options:baseOpts()});
+
+  if($('#model').classList.contains('active')||true) renderModelCharts();
+}
+
+/* ================= MODEL DETAIL ================= */
+function fillModelSelectors(){
+  const opts=DATA.overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('');
+  $('#modelSel').innerHTML=opts; $('#clsModelSel').innerHTML=opts; $('#predModelSel').innerHTML=opts;
+  $('#modelSel').onchange=renderModel; $('#clsModelSel').onchange=renderClassTable;
+}
+function curRun(){return $('#modelSel').value;}
+function renderModel(){
+  const run=curRun(); const r=DATA.overall.find(x=>x.run_name===run);
+  $('#modelMeta').innerHTML=[
+    ['mAP50',fmt(r.mAP50)],['mAP50-95',fmt(r['mAP50-95'])],['Precision',fmt(r.precision)],['Recall',fmt(r.recall)],['輪數',r.epochs]
+  ].map(k=>`<div class="card kpi" style="padding:12px 14px"><div class="label">${k[0]}</div><div class="val accent" style="font-size:20px">${k[1]}</div></div>`).join('');
+  // images
+  const a=DATA.assets[run]||{};
+  const imap=[['confusion','混淆矩陣（常態化）'],['pr_curve','Precision-Recall 曲線'],['f1_curve','F1 曲線'],['results','訓練總覽']];
+  $('#modelImgs').innerHTML=imap.filter(x=>a[x[0]]).map(x=>`<div class="imgbox"><img loading="lazy" src="${a[x[0]]}"><div class="cap">${x[1]}</div></div>`).join('')||'<p class="note">無圖。</p>';
+  // samples
+  $('#modelSamples').innerHTML=(a.samples||[]).map((s,i)=>`<div class="imgbox" style="padding:8px"><div class="samples">
+    ${s.pred?`<figure><img loading="lazy" src="${s.pred}"><figcaption>預測 #${i+1}</figcaption></figure>`:''}
+    ${s.label?`<figure><img loading="lazy" src="${s.label}"><figcaption>標註 #${i+1}</figcaption></figure>`:''}
+    </div></div>`).join('')||'<p class="note">無預測樣本。</p>';
+  // per-class
+  const pc=DATA.per_class.filter(x=>x.run_name===run);
+  const cols=[['class_name','類別'],['instances','整體樣本'],['mAP50','mAP50'],['mAP50-95','mAP50-95'],['precision','P'],['recall','R']];
+  buildSortableTable($('#modelPC'),cols,pc,'mAP50-95',(row,key)=> key==='class_name'?row.class_name:(key==='instances'?row.instances:`<span class="mono">${fmt(row[key])}</span>`),-1);
+  renderModelCharts();
+}
+function renderModelCharts(){
+  const run=curRun(); if(!run)return; const c=DATA.curves[run]; if(!c)return;
+  const ac=themeAccent(),ac2=themeAccent2();
+  mkChart('curveMap',{type:'line',data:{labels:c.epoch,datasets:[
+    {label:'mAP50',data:c.mAP50,borderColor:ac,tension:.25,pointRadius:0,borderWidth:2},
+    {label:'mAP50-95',data:c['mAP50-95'],borderColor:ac2,tension:.25,pointRadius:0,borderWidth:2}]},options:baseOpts()});
+  mkChart('curveLoss',{type:'line',data:{labels:c.epoch,datasets:[
+    {label:'train box_loss',data:c.train_box_loss,borderColor:ac,tension:.25,pointRadius:0,borderWidth:2},
+    {label:'val box_loss',data:c.val_box_loss,borderColor:ac2,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:2}]},options:baseOpts()});
+}
+
+/* ================= CLASS ANALYSIS ================= */
+function renderFair(){
+  const N=+$('#instSlider').value;
+  const kept=DATA.class_freq.filter(c=>c.instances>=N).map(c=>c.class_id);
+  $('#instVal').textContent=`≥ ${N}（保留 ${kept.length} 類）`;
+  const keptset=new Set(kept);
+  const rows=DATA.overall.map(r=>{
+    const pcs=DATA.per_class.filter(x=>x.run_name===r.run_name && keptset.has(x.class_id));
+    const mean=k=> pcs.length? pcs.reduce((s,x)=>s+(x[k]||0),0)/pcs.length : null;
+    return {model:r.model,preprocess:r.preprocess,group:r.group,n:pcs.length,
+      'macro_mAP50':mean('mAP50'),'macro_mAP50-95':mean('mAP50-95'),'macro_recall':mean('recall')};
+  });
+  const cols=[['model','模型'],['preprocess','預處理'],['group','軸'],['n','類別數'],['macro_mAP50','macro mAP50'],['macro_mAP50-95','macro mAP50-95'],['macro_recall','macro Recall']];
+  buildSortableTable($('#fairTable'),cols,rows,'macro_mAP50-95',(r,key)=>{
+    if(key==='model')return prettyModel(r); if(key==='group')return groupBadge(r.group);
+    if(key==='preprocess')return r.preprocess; if(key==='n')return r.n;
+    return `<span class="mono">${fmt(r[key])}</span>`;
+  },0);
+}
+function renderClassTable(){
+  const run=$('#clsModelSel').value;
+  const pc=DATA.per_class.filter(x=>x.run_name===run);
+  const cols=[['class_id','ID'],['class_name','類別'],['instances','整體樣本'],['mAP50','mAP50'],['mAP50-95','mAP50-95'],['precision','P'],['recall','R']];
+  buildSortableTable($('#clsTable'),cols,pc,'instances',(row,key)=>
+    key==='class_name'?row.class_name:(['class_id','instances'].includes(key)?row[key]:`<span class="mono">${fmt(row[key])}</span>`),-1);
+}
+
+/* ================= PREDICT ================= */
+let pickedFile=null;
+function initPredict(){
+  const saved=localStorage.getItem('tx_space_url');
+  $('#spaceUrl').value = saved || (window.TEXTILE_CONFIG&&window.TEXTILE_CONFIG.SPACE_URL) || '';
+  $('#spaceUrl').onchange=()=>localStorage.setItem('tx_space_url',$('#spaceUrl').value.trim());
+  $('#confSlider').oninput=e=>$('#confVal').textContent=(+e.target.value).toFixed(2);
+  const drop=$('#drop'),fi=$('#fileInput');
+  drop.onclick=()=>fi.click();
+  fi.onchange=()=>{ if(fi.files[0]) setFile(fi.files[0]); };
+  ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hl');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hl');}));
+  drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+  $('#clearBtn').onclick=()=>{pickedFile=null;$('#predBtn').disabled=true;$('#predStatus').className='status';$('#predStatus').textContent='尚未選圖。';$('#resultImg').style.display='none';$('#resultCap').style.display='none';$('#detWrap').style.display='none';drop.querySelector('div').textContent='📷 點此選圖，或將圖片拖曳到這裡';};
+  $('#predBtn').onclick=runPredict;
+}
+function setFile(f){ pickedFile=f; $('#predBtn').disabled=false; $('#drop').querySelector('div').textContent='✅ 已選：'+f.name; $('#predStatus').className='status';$('#predStatus').textContent='就緒，按「開始預測」。'; }
+async function runPredict(){
+  const url=$('#spaceUrl').value.trim().replace(/\/+$/,'');
+  if(!url||url.includes('YOUR-HF')){ setStatus('請先在上方填入你的 HF Space URL。','err'); return; }
+  if(!pickedFile){ setStatus('請先選圖。','err'); return; }
+  const fd=new FormData(); fd.append('image',pickedFile); fd.append('model',$('#predModelSel').value); fd.append('conf',$('#confSlider').value);
+  $('#predBtn').disabled=true; setStatus('預測中…（若為冷啟動，請耐心等 30–60 秒）','');
+  try{
+    const t0=performance.now();
+    const res=await fetch(url+'/predict',{method:'POST',body:fd});
+    if(!res.ok) throw new Error('HTTP '+res.status+' '+(await res.text()).slice(0,200));
+    const j=await res.json();
+    const img=$('#resultImg'); img.src='data:image/jpeg;base64,'+j.annotated_image_b64; img.style.display='block';
+    $('#resultCap').style.display='block'; $('#resultCap').textContent=`模型 ${$('#predModelSel').value} · 後端 ${Math.round(j.speed_ms||0)} ms · 往返 ${Math.round(performance.now()-t0)} ms`;
+    const dets=j.detections||[];
+    $('#detWrap').style.display='block'; $('#detCount').textContent=dets.length+' 個';
+    $('#detList').innerHTML=dets.length? dets.sort((a,b)=>b.conf-a.conf).map(d=>`<div class="pill"><span>${d.class_name||d.class_id}</span><span class="mono">${(d.conf*100).toFixed(1)}%</span></div>`).join('') : '<div class="note" style="padding:8px">此圖未偵測到任何劣化（可調低信心門檻再試）。</div>';
+    setStatus('完成 ✓','ok');
+  }catch(err){ setStatus('預測失敗：'+err.message,'err'); }
+  finally{ $('#predBtn').disabled=false; }
+}
+function setStatus(t,c){ const s=$('#predStatus'); s.className='status'+(c?' '+c:''); s.textContent=t; }
+
+/* ================= BOOT ================= */
+fetch('data.json').then(r=>r.json()).then(d=>{
+  DATA=d;
+  const qp=new URLSearchParams(location.search);
+  setTheme(qp.get('theme')||localStorage.getItem('tx_theme')||'light');
+  fillModelSelectors();
+  renderOverview();
+  renderModel();
+  $('#instSlider').oninput=renderFair; renderFair();
+  renderClassTable();
+  initPredict();
+  if(location.hash) activateTab(location.hash.slice(1));
+  $('#foot').innerHTML=`資料來源：本地 result/（comparison_overall.csv、per_class_metrics.csv、class_frequency.csv）· ${DATA.models.length} 個模型 · 訓練 ${DATA.epochs_note} epochs · 靜態儀表板由 build_site.py 產生。`;
+}).catch(e=>{ document.querySelector('main').innerHTML='<div class="card panel">⚠️ 載入 data.json 失敗：'+e.message+'<br><span class="note">請以 HTTP 伺服器開啟（cd site && python3 -m http.server），不要直接雙擊 file://。</span></div>'; });
+</script>
+</body>
+</html>
