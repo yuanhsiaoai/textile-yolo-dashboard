@@ -103,6 +103,28 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 .foot{max-width:1240px;margin:30px auto 0;padding:0 22px;color:var(--muted);font-size:12px}
 .pre-warn{background:color-mix(in srgb,var(--accent-2) 14%,transparent);border:1px solid color-mix(in srgb,var(--accent-2) 40%,transparent);
   color:var(--text);padding:10px 14px;border-radius:10px;font-size:12.5px;margin-bottom:14px}
+.expswitch{display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-left:6px}
+.expswitch button{border:0;background:var(--panel-2);color:var(--muted);font:inherit;font-size:12.5px;font-weight:700;
+  padding:8px 13px;cursor:pointer;transition:.15s}
+.expswitch button.active{background:var(--accent-2);color:#fff}
+[data-theme="dark"] .expswitch button.active{color:#1a1206}
+.expnote{font-size:12px;color:var(--accent-2);font-weight:700;margin:0 2px 10px}
+.prose{font-size:14px;line-height:1.75}
+.prose p{margin:0 0 10px}
+.prose ul{margin:6px 0 10px;padding-left:22px}
+.prose li{margin-bottom:5px}
+.prose b.num{font-variant-numeric:tabular-nums;color:var(--accent)}
+.delta-up{color:var(--good);font-weight:700}
+.delta-dn{color:var(--bad);font-weight:700}
+.archgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+.archcard{padding:18px 20px}
+.archcard h4{margin:0 0 4px;font-size:15px;color:var(--accent)}
+.archcard .spec{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.archcard .chg{font-size:12.5px;background:var(--chip);border-radius:8px;padding:7px 10px;margin-bottom:10px}
+.archcard .nums{display:flex;gap:14px;font-size:12.5px;margin-bottom:8px}
+.archcard .nums div{flex:1;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px}
+.archcard .nums .v{font-weight:800;font-size:15px}
+.archcard p{font-size:13px;line-height:1.65;margin:0;color:var(--text)}
 </style>
 </head>
 <body>
@@ -110,14 +132,16 @@ input[type=range]{flex:1;accent-color:var(--accent)}
   <div class="bar">
     <div class="brand">
       <b>YOLO織品劣化辨識模型比較</b>
-      <span>YOLO v8/v9/v10/v11 與 RT-DETR 多模型比較</span>
+      <span>YOLO v8/v9/v10/v11 與 RT-DETR · 51 類細項 vs 5 群分群雙實驗</span>
     </div>
     <nav id="nav">
       <button data-tab="overview" class="active">總覽</button>
       <button data-tab="model">模型細節</button>
       <button data-tab="cls">類別分析</button>
+      <button data-tab="analysis">學術解析</button>
       <button data-tab="predict">即時預測</button>
     </nav>
+    <div class="expswitch" id="expSwitch"></div>
     <span class="spacer"></span>
     <button class="toggle" id="themeBtn" title="切換深/淺色">🌙</button>
   </div>
@@ -126,6 +150,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 <main>
   <!-- OVERVIEW -->
   <section class="tab active" id="overview">
+    <p class="expnote" data-expnote></p>
     <div class="grid kpis" id="kpis"></div>
     <h2 class="section">模型排行榜（獨立測試集）</h2>
     <div class="card panel" style="overflow:auto">
@@ -143,6 +168,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 
   <!-- MODEL DETAIL -->
   <section class="tab" id="model">
+    <p class="expnote" data-expnote></p>
     <div class="controls">
       <label class="fld">選擇模型<select id="modelSel"></select></label>
       <div id="modelMeta" class="grid kpis" style="flex:1;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px"></div>
@@ -161,6 +187,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 
   <!-- CLASS -->
   <section class="tab" id="cls">
+    <p class="expnote" data-expnote></p>
     <div class="card panel">
       <h3>公允 mAP：依「整體樣本數」門檻篩選類別</h3>
       <p class="note">整體 mAP 會被大量稀有/零樣本類別拉低。拖動門檻，只計入 <b>instances ≥ N</b> 的類別，重算各模型的巨集平均（macro）mAP。</p>
@@ -177,9 +204,44 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     <div class="card panel" style="overflow:auto"><table id="clsTable"><thead></thead><tbody></tbody></table></div>
   </section>
 
+  <!-- ANALYSIS（跨實驗學術解析，不受右上切換器影響） -->
+  <section class="tab" id="analysis">
+    <p class="expnote">本頁交叉比對「實驗一：51 類細項」與「實驗二：5 群分群」全部 13 組訓練（同一標註來源、同一 seed=42 與超參數，唯一變因為類別體系），所有數字均來自獨立測試集實測。</p>
+    <div class="grid kpis" id="anaKpis"></div>
+
+    <h2 class="section">兩實驗設定對照</h2>
+    <div class="card panel" style="overflow:auto"><table id="anaSetup"><thead></thead><tbody></tbody></table></div>
+
+    <h2 class="section">逐模型配對比較（同名 run 直接對照）</h2>
+    <div class="card panel" style="overflow:auto">
+      <table id="anaPair"><thead></thead><tbody></tbody></table>
+      <p class="note" style="margin:12px 2px 0">Δ = 實驗二 − 實驗一；綠＝分群後上升、紅＝下降。點欄位標題可排序。</p>
+    </div>
+    <div class="row2">
+      <div class="card panel"><h3>mAP50：51 類 vs 5 群</h3><canvas id="anaBar50" height="230"></canvas></div>
+      <div class="card panel"><h3>mAP50-95：51 類 vs 5 群</h3><canvas id="anaBar5095" height="230"></canvas></div>
+    </div>
+
+    <h2 class="section">壹、總體效應：為何「合併類別」反而讓 mAP 下降？</h2>
+    <div class="card panel prose" id="anaOverall"></div>
+
+    <h2 class="section">貳、架構層面解讀：網路設計如何決定兩種任務下的表現</h2>
+    <div class="card panel prose" id="anaRankFlip"></div>
+    <div class="archgrid" id="anaArch" style="margin-top:16px"></div>
+
+    <h2 class="section">參、預處理 × 架構的交互作用</h2>
+    <div class="card panel prose" id="anaPrep"></div>
+
+    <h2 class="section">肆、樣本瓶頸與分群設計的反思</h2>
+    <div class="card panel prose" id="anaSample"></div>
+
+    <h2 class="section">伍、研究限制與下一步建議</h2>
+    <div class="card panel prose" id="anaLimit"></div>
+  </section>
+
   <!-- PREDICT -->
   <section class="tab" id="predict">
-    <div class="pre-warn">⚙️ 即時預測由後端（Hugging Face Space）執行。免費 Space 閒置會休眠，<b>首次請求可能需等待 30–60 秒冷啟動</b>，屬正常。</div>
+    <div class="pre-warn">⚙️ 即時預測由後端（Hugging Face Space）執行，目前部署的是<b>實驗一（51 類細項）權重</b>；5 群模型如需線上預測需另行更新 Space。免費 Space 閒置會休眠，<b>首次請求可能需等待 30–60 秒冷啟動</b>，屬正常。</div>
     <div class="row2">
       <div class="card panel">
         <h3>設定</h3>
@@ -221,7 +283,7 @@ const fmt = (v,d=3)=> v==null||isNaN(v) ? '—' : (+v).toFixed(d);
 const pct = v=> v==null||isNaN(v) ? '—' : (v*100).toFixed(1)+'%';
 const $ = s=>document.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
-let DATA=null, charts={};
+let EXPS=null, CUR=0, DATA=null, charts={};
 const themeAccent=()=>getComputedStyle(document.body).getPropertyValue('--accent').trim();
 const themeAccent2=()=>getComputedStyle(document.body).getPropertyValue('--accent-2').trim();
 const gridCol=()=>getComputedStyle(document.body).getPropertyValue('--grid').trim();
@@ -233,6 +295,7 @@ function setTheme(t){
   $('#themeBtn').textContent = t==='dark'?'☀️':'🌙';
   localStorage.setItem('tx_theme',t);
   if(DATA) renderAllCharts();
+  if(EXPS) renderAnalysis();
 }
 $('#themeBtn').onclick=()=>setTheme(document.body.getAttribute('data-theme')==='dark'?'light':'dark');
 
@@ -258,6 +321,17 @@ lb.onclick=()=>lb.classList.remove('show');
 /* ---------- helpers ---------- */
 const groupBadge=g=> `<span class="badge ${g}">${g==='arch'?'架構':g==='size'?'尺寸':g}</span>`;
 const prettyModel=r=> `${r.model} <span class="note">/ ${r.preprocess}</span>`;
+
+/* ---------- experiment switcher ---------- */
+function renderExpSwitch(){
+  $('#expSwitch').innerHTML = EXPS.map((e,i)=>`<button class="${i===CUR?'active':''}" data-i="${i}">${e.label}</button>`).join('');
+  $('#expSwitch').querySelectorAll('button').forEach(b=>b.onclick=()=>setExp(+b.dataset.i));
+}
+function setExp(i){
+  CUR=i; DATA=EXPS[i]; renderExpSwitch();
+  document.querySelectorAll('[data-expnote]').forEach(n=>n.textContent=`目前檢視：${DATA.label}（${DATA.sub}）— 可由右上角切換實驗。`);
+  fillModelSelectors(); renderOverview(); renderModel(); renderFair(); renderClassTable();
+}
 
 /* ================= OVERVIEW ================= */
 function renderOverview(){
@@ -334,7 +408,9 @@ function renderAllCharts(){
 /* ================= MODEL DETAIL ================= */
 function fillModelSelectors(){
   const opts=DATA.overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('');
-  $('#modelSel').innerHTML=opts; $('#clsModelSel').innerHTML=opts; $('#predModelSel').innerHTML=opts;
+  $('#modelSel').innerHTML=opts; $('#clsModelSel').innerHTML=opts;
+  // 即時預測固定用實驗一（51 類）模型清單：HF Space 目前部署的是 51 類權重
+  $('#predModelSel').innerHTML=EXPS[0].overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('');
   $('#modelSel').onchange=renderModel; $('#clsModelSel').onchange=renderClassTable;
 }
 function curRun(){return $('#modelSel').value;}
@@ -396,6 +472,148 @@ function renderClassTable(){
     key==='class_name'?row.class_name:(['class_id','instances'].includes(key)?row[key]:`<span class="mono">${fmt(row[key])}</span>`),-1);
 }
 
+/* ================= ANALYSIS（跨實驗學術解析） ================= */
+const ARCH_INFO={
+  'yolov8l':{name:'YOLOv8-L',spec:'約 43.7M 參數 · 165 GFLOPs',
+    chg:'C2f 跨階段模組＋解耦偵測頭＋anchor-free（TAL 動態標籤分配）',
+    mech:'比較組中參數量最大的 CNN。容量大、表徵成熟，對「類內視覺型態多樣」的粗分類任務最有餘裕——當 5 群把破洞、縫合開裂、副料鬆脫等不同外觀併入同一類，需要更大的特徵空間同時涵蓋多種視覺模式，大容量骨幹因此勝出。'},
+  'yolov9c':{name:'YOLOv9-C',spec:'約 25.3M 參數 · 102 GFLOPs',
+    chg:'GELAN 廣義高效層聚合＋PGI 可程式梯度資訊（訓練期輔助可逆分支）',
+    mech:'PGI 以可逆輔助分支緩解深層網路的資訊瓶頸，讓淺層細節梯度不被稀釋——這正是「51 類細粒度、多數類別樣本極少」時最需要的性質，故在實驗一奪冠。任務粗化為 5 群後，細節梯度的邊際價值下降，優勢隨之縮小。'},
+  'yolov10l':{name:'YOLOv10-L',spec:'約 24.4M 參數 · 120 GFLOPs',
+    chg:'NMS-free 設計：一對一＋一對多雙重標籤指派、輕量化分類頭',
+    mech:'一對一匹配讓每個目標只有單一正樣本監督，訊號比傳統一對多稀疏，已知需要更長訓練才收斂；20 epochs 下兩實驗的 recall 都偏低（約 0.08–0.10），輕量化分類頭也不利於異質大類的判別。'},
+  'yolo11l':{name:'YOLO11-L',spec:'約 25.3M 參數 · 87 GFLOPs',
+    chg:'C3k2 骨幹＋C2PSA 空間注意力，走「參數效率」路線',
+    mech:'以約 v8l 六成的參數量與一半的運算量換取效率，注意力模組偏向凸顯局部關鍵區域。在 51 類任務尚可（注意力有助小區域細項），但 5 群任務需要的是「一類容納多種外觀」的容量，參數效率路線反成短板。'},
+  'rtdetr-l':{name:'RT-DETR-L',spec:'約 32M 參數 · 110 GFLOPs',
+    chg:'Transformer 查詢式偵測：高效混合編碼器＋匈牙利匹配（set prediction，免 NMS）',
+    mech:'唯一在分群後「上升」的架構。DETR 家族以全域注意力和集合預測取代密集錨點，已知收斂慢、資料飢渴：51 類 × 匈牙利匹配近乎無法在 20 epochs 學起來（mAP50 < 0.01）；類別數降到 5 大幅簡化匹配與分類，mAP50 升至 0.033，但仍遠落後 CNN 系——需 ≥100 epochs 才能公平評價。'},
+};
+const fmtD=(v,d=3)=>v==null?'—':(v>=0?'+':'')+v.toFixed(d);
+const dcell=v=>v==null?'—':`<span class="${v>=0?'delta-up':'delta-dn'} mono">${fmtD(v)}</span>`;
+
+function pairRows(){
+  const [e1,e2]=EXPS;
+  return e1.overall.map(r1=>{
+    const r2=e2.overall.find(x=>x.run_name===r1.run_name);
+    return r2&&{run_name:r1.run_name,model:r1.model,preprocess:r1.preprocess,group:r1.group,
+      m50_1:r1.mAP50,m50_2:r2.mAP50,d50:+(r2.mAP50-r1.mAP50).toFixed(6),
+      m95_1:r1['mAP50-95'],m95_2:r2['mAP50-95'],d95:+(r2['mAP50-95']-r1['mAP50-95']).toFixed(6),
+      r_1:r1.recall,r_2:r2.recall};
+  }).filter(Boolean);
+}
+
+function renderAnalysis(){
+  const [e1,e2]=EXPS, pairs=pairRows();
+  const best1=e1.overall[0], best2=e2.overall[0];
+  const up=pairs.filter(p=>p.d95>0), down=pairs.filter(p=>p.d95<0);
+  const meanD50=pairs.reduce((s,p)=>s+p.d50,0)/pairs.length;
+  const g=(exp,run)=>exp.overall.find(r=>r.run_name===run)||{};
+  const pc2=run=>e2.per_class.filter(x=>x.run_name===run);
+
+  // KPI
+  $('#anaKpis').innerHTML=[
+    ['實驗一最佳',`${best1.model}`,`${best1.preprocess} · mAP50 ${fmt(best1.mAP50)}`,'accent'],
+    ['實驗二最佳',`${best2.model}`,`${best2.preprocess} · mAP50 ${fmt(best2.mAP50)}`,'accent'],
+    ['分群後下降',`${down.length}/${pairs.length} 組`,`mAP50 平均 Δ ${fmtD(meanD50)}`,''],
+    ['分群後上升',up.length?up.map(p=>p.model).filter((v,i,a)=>a.indexOf(v)===i).join('、'):'無',`以 mAP50-95 計`,''],
+  ].map(k=>`<div class="card kpi"><div class="label">${k[0]}</div><div class="val ${k[3]}" style="font-size:21px">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
+
+  // 設定對照表
+  $('#anaSetup').innerHTML=`<thead><tr><th>項目</th><th>實驗一：51 類細項</th><th>實驗二：5 群分群</th></tr></thead><tbody>`+
+    [['資料集','textile_202511（Label Studio 匯出）','textile_202606（同一標註重映射）'],
+     ['類別體系','51 類細項劣化','5 群：結構性／色彩性／汙染性／生物性／形變磨耗性'],
+     ['標註框數','6,349（同一批標註）','6,349（座標不變，僅 class_id 重映射）'],
+     ['分割','8:1:1（seed=42）','8:1:1（seed=42）'],
+     ['超參數','imgsz 640 · batch 16 · SGD · lr0 0.01 · epochs 20','同左（唯一變因＝類別體系）'],
+     ['模型矩陣','5 架構 × 2 預處理 ＋ 尺寸軸（去重 13 組）','同左 13 組'],
+    ].map(r=>`<tr><td style="text-align:left">${r[0]}</td><td style="text-align:left">${r[1]}</td><td style="text-align:left">${r[2]}</td></tr>`).join('')+'</tbody>';
+
+  // 配對表
+  const cols=[['model','模型'],['preprocess','預處理'],['m50_1','mAP50 ①'],['m50_2','mAP50 ②'],['d50','Δ mAP50'],
+              ['m95_1','mAP50-95 ①'],['m95_2','mAP50-95 ②'],['d95','Δ mAP50-95']];
+  buildSortableTable($('#anaPair'),cols,pairs,'m95_2',(r,k)=>{
+    if(k==='model')return r.model; if(k==='preprocess')return r.preprocess;
+    if(k==='d50'||k==='d95')return dcell(r[k]);
+    return `<span class="mono">${fmt(r[k])}</span>`;
+  },0);
+
+  // 雙長條圖
+  const sorted=[...pairs].sort((a,b)=>b.m50_1-a.m50_1);
+  const labels=sorted.map(p=>p.model+'\n'+p.preprocess.replace('clahe+denoise','clahe+dn'));
+  const ac=themeAccent(),ac2=themeAccent2();
+  const mk2=(id,k1,k2)=>mkChart(id,{type:'bar',data:{labels,datasets:[
+    {label:'實驗一（51 類）',data:sorted.map(p=>p[k1]),backgroundColor:ac+'cc'},
+    {label:'實驗二（5 群）',data:sorted.map(p=>p[k2]),backgroundColor:ac2+'cc'}]},
+    options:{...baseOpts(),scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{color:txtCol(),font:{size:9},maxRotation:60,minRotation:45}}}}});
+  mk2('anaBar50','m50_1','m50_2'); mk2('anaBar5095','m95_1','m95_2');
+
+  // ---- 壹、總體效應 ----
+  const v8n1=g(e1,'yolov8l__none__arch'), v8n2=g(e2,'yolov8l__none__arch');
+  const v9c1=g(e1,'yolov9c__clahe+denoise__arch'), v9c2=g(e2,'yolov9c__clahe+denoise__arch');
+  $('#anaOverall').innerHTML=`
+  <p>分群假說的預期是：51 類細項中大量「光譜連續、邊界不明確」的類別（黃化、褪色、移染、水漬等）造成標註與判讀不一致，合併為視覺邏輯一致的大群後辨識效率應當提升。然而在相同 20 epochs 設定下，<b>13 組配對中有 <b class="num">${down.length}</b> 組的 mAP50-95 下降</b>（例：yolov8l/none 的 mAP50 由 <b class="num">${fmt(v8n1.mAP50)}</b> 降至 <b class="num">${fmt(v8n2.mAP50)}</b>；實驗一冠軍 yolov9c/clahe+denoise 由 <b class="num">${fmt(v9c1.mAP50)}</b> 降至 <b class="num">${fmt(v9c2.mAP50)}</b>）。短訓練條件下，分群假說未獲支持。可由三個機制解釋：</p>
+  <ul>
+    <li><b>巨集平均的「稀有類紅利」消失。</b>mAP 是逐類別平均（macro）：51 類體系中，樣本少但視覺特徵鮮明的類別（如鬚邊 74 例 AP50≈0.59、糾結 34 例≈0.58、銹斑 44 例≈0.55，皆出自實驗一最佳模型）只要抓對少數幾框就貢獻很高的單類 AP，把巨集平均拉高。合併後這些「容易的小類」被吸進大群，其高 AP 被群內海量難例（髒污、縐摺）稀釋，帳面 mAP 自然回落——這是<b>統計組成效應</b>，不全然代表模型變差。</li>
+    <li><b>類內視覺異質性（intra-class heterogeneity）上升。</b>本次分群依「劣化成因」而非「視覺外觀」：結構性群同時包含破洞（暗洞）、鬚邊（毛邊）、副料鬆脫（完整但移位的物件）；汙染性群同時有深色髒污與淡色水漬。單一類別的特徵分佈因此變成多峰（multi-modal），分類分支必須學會「外觀互不相似者屬同類」的析取概念，決策邊界更難；對比之下 51 類雖然每類樣本少，但每類視覺定義單純。</li>
+    <li><b>框型尺度異質拖累定位。</b>AP 以 IoU 為基礎；合併後同一類的標註框從小針孔到整片縐摺橫跨數個數量級，迴歸分支對「這一類的框長什麼樣」失去先驗，mAP50-95（嚴格 IoU 段）受害最深。</li>
+  </ul>
+  <p>值得注意的是：分群的<b>真正效益要在「每類樣本量 × 訓練輪數」充足時才會顯現</b>——5 群每群平均逾 1,200 框，遠高於 51 類的長尾，理論上更能餵飽 100 epochs 的完整訓練；epochs=20 的初篩擷取不到這個優勢（見「伍、限制與建議」）。</p>`;
+
+  // ---- 貳、排名翻轉 ----
+  const v9n1=g(e1,'yolov9c__none__arch'), v9n2=g(e2,'yolov9c__none__arch');
+  const v11n1=g(e1,'yolo11l__none__arch'), v11n2=g(e2,'yolo11l__none__arch');
+  $('#anaRankFlip').innerHTML=`
+  <p><b>冠軍從 yolov9c 換成 yolov8l，是兩實驗最具學術意義的訊號。</b>實驗一中 yolov9c（GELAN＋PGI）以 mAP50 <b class="num">${fmt(v9c1.mAP50)}</b> 居首、yolov8l/none 為 <b class="num">${fmt(v8n1.mAP50)}</b>；實驗二翻轉為 yolov8l 居首（mAP50 <b class="num">${fmt(v8n2.mAP50)}</b>、mAP50-95 <b class="num">${fmt(v8n2['mAP50-95'])}</b>），yolov9c/none 落至 <b class="num">${fmt(v9n2.mAP50)}</b>。機制解讀：</p>
+  <ul>
+    <li><b>細粒度任務獎勵「梯度資訊保真」。</b>YOLOv9 的 PGI 以輔助可逆分支保住淺層細節梯度，恰好對應 51 類任務的需求——大量類別只能靠細微紋理差異區分、且樣本極少，每一筆梯度都珍貴。</li>
+    <li><b>粗粒度異質任務獎勵「容量」。</b>5 群任務的瓶頸不在細節，而在「一個類別要容納多種外觀」。yolov8l 參數量（約 43.7M）為 yolov9c／yolo11l（約 25M 級）的 1.7 倍，特徵空間更寬裕，最能吸收類內多峰分佈；yolo11l 的參數效率路線（mAP50 ${fmt(v11n1.mAP50)} → ${fmt(v11n2.mAP50)}）在此正好吃虧。</li>
+    <li><b>推論：架構選擇應跟著「類別體系的粒度」走。</b>若論文最終採分群標籤，模型建議轉向大容量 CNN（v8l/v8x 級）；若維持細項標籤，PGI 類設計更有利。這個交互作用本身即是可報告的發現。</li>
+  </ul>`;
+
+  // ---- 架構卡 ----
+  $('#anaArch').innerHTML=Object.entries(ARCH_INFO).map(([m,a])=>{
+    const r1=e1.overall.filter(r=>r.model===m&&r.group==='arch'), r2=e2.overall.filter(r=>r.model===m&&r.group==='arch');
+    const b1=r1.length?Math.max(...r1.map(r=>r.mAP50)):null, b2=r2.length?Math.max(...r2.map(r=>r.mAP50)):null;
+    return `<div class="card archcard"><h4>${a.name}</h4><div class="spec">${a.spec}</div>
+      <div class="chg">🔧 ${a.chg}</div>
+      <div class="nums"><div><div class="note">51 類 best mAP50</div><div class="v mono">${fmt(b1)}</div></div>
+      <div><div class="note">5 群 best mAP50</div><div class="v mono">${fmt(b2)}</div></div>
+      <div><div class="note">Δ</div><div class="v">${dcell(b1!=null&&b2!=null?+(b2-b1).toFixed(6):null)}</div></div></div>
+      <p>${a.mech}</p></div>`;
+  }).join('');
+
+  // ---- 參、預處理交互 ----
+  const ab=(exp,m)=>{const n=g(exp,`${m}__none__arch`),c=g(exp,`${m}__clahe+denoise__arch`);return n.mAP50!=null&&c.mAP50!=null?+(c.mAP50-n.mAP50).toFixed(6):null;};
+  const archs=['yolov8l','yolov9c','yolov10l','yolo11l','rtdetr-l'];
+  $('#anaPrep').innerHTML=`
+  <p>CLAHE＋雙邊去噪的效益<b>與架構、任務粒度都有交互作用</b>，並非普遍有益：</p>
+  <div style="overflow:auto"><table><thead><tr><th style="text-align:left">架構</th><th>51 類 Δ(clahe+dn − none)</th><th>5 群 Δ(clahe+dn − none)</th></tr></thead><tbody>
+  ${archs.map(m=>`<tr><td style="text-align:left">${m}</td><td>${dcell(ab(e1,m))}</td><td>${dcell(ab(e2,m))}</td></tr>`).join('')}
+  </tbody></table></div>
+  <p style="margin-top:10px">實驗一只有 yolov9c 明顯受益（局部對比增強凸顯細項紋理，與 PGI 的細節保真互補）；實驗二 yolov8l／yolov9c 僅小幅受益、yolo11l 轉為受益但幅度有限，而 <b>RT-DETR 兩實驗皆受害</b>——全域注意力會把 CLAHE 放大的背景紋理當成訊號，等同注入雜訊。結論：預處理 A/B 應按「架構 × 類別體系」逐格報告，不宜給單一結論。</p>`;
+
+  // ---- 肆、樣本瓶頸 ----
+  const bio=pc2(best2.run_name).find(x=>x.class_id===3)||{};
+  const defw=pc2(best2.run_name).find(x=>x.class_id===4)||{};
+  const stain=pc2(best2.run_name).find(x=>x.class_id===2)||{};
+  $('#anaSample').innerHTML=`
+  <p>分群雖把 51 類的極端長尾（最高 1,939 例 vs 最低 1 例）壓縮成 5 群，但<b>不平衡只是被搬移、沒有消失</b>：生物性劣化全資料僅 <b class="num">75</b> 框、測試集只剩 <b class="num">${bio.test_instances??'4'}</b> 框，最佳模型在該群 AP50 = <b class="num">${fmt(bio.mAP50)}</b>（等於完全學不到），任何含生物性群的整體 mAP 都被這一群拉低約兩成。</p>
+  <p>反觀樣本充足且視覺同質的群表現相對最好：實驗二最佳模型中，形變磨耗性（1,612 框，摺痕／縐摺外觀同為線狀陰影）AP50 = <b class="num">${fmt(defw.mAP50)}</b>、recall <b class="num">${fmt(defw.recall)}</b>，汙染性（2,218 框）AP50 = <b class="num">${fmt(stain.mAP50)}</b>——支持「視覺同質＋樣本量」才是分群設計的有效軸線。順著這個邏輯，現行分群有兩個可檢討處：黴害（2 框）被併入汙染性、黴斑（3 框）留在生物性，同源劣化被成因式定義拆進兩群；生物性群本身樣本過少，可考慮與汙染性合併為「斑點型劣化」或以資料擴增補強。</p>`;
+
+  // ---- 伍、限制與建議 ----
+  const rt1=g(e1,'rtdetr-l__none__arch'), rt2=g(e2,'rtdetr-l__none__arch');
+  $('#anaLimit').innerHTML=`
+  <ul>
+    <li><b>epochs=20 是初篩，不是定論。</b>兩實驗皆距 100 epochs 完整協議甚遠；收斂慢的架構（YOLOv10 的一對一匹配、RT-DETR 的 set prediction）被系統性低估——RT-DETR 在 5 群下 mAP50 已從 <b class="num">${fmt(rt1.mAP50)}</b> 升至 <b class="num">${fmt(rt2.mAP50)}</b>，長訓練後的天花板仍未知。結論「分群是否有益」必須等 100 epochs 重訓後再下。</li>
+    <li><b>建議一：以 100 epochs 重跑 5 群矩陣</b>（沿用可重入續跑機制），優先 yolov8l、yolov9c、rtdetr-l 三條線；屆時若 yolov8l 維持領先，即可確立「粗粒度任務 → 大容量 CNN」的選型結論。</li>
+    <li><b>建議二：分群準則改以「視覺同質性」優先</b>，必要時引入層級式標籤（粗群偵測頭＋細項分類頭雙輸出）：偵測層面享受大群的樣本量，報告層面保留 51 類細項的文物保存語意，兩者不必二選一。</li>
+    <li><b>建議三：同分割直接配對檢定。</b>兩實驗共用 seed=42 與同一影像集，逐影像預測結果可做配對比較（per-image AP 或 TIDE 錯誤分解），把「組成效應」與「真實能力變化」拆開量化，作為論文的方法學亮點。</li>
+    <li><b>效度註記：</b>本頁所有數字皆為獨立測試集實測（model.val(split='test')）；解析文字為研究討論用初稿，引用前請再次核對 CSV 原始值。</li>
+  </ul>`;
+}
+
 /* ================= PREDICT ================= */
 let pickedFile=null;
 function initPredict(){
@@ -437,17 +655,15 @@ function setStatus(t,c){ const s=$('#predStatus'); s.className='status'+(c?' '+c
 
 /* ================= BOOT ================= */
 fetch('data.json').then(r=>r.json()).then(d=>{
-  DATA=d;
+  EXPS=d.experiments;
   const qp=new URLSearchParams(location.search);
   setTheme(qp.get('theme')||localStorage.getItem('tx_theme')||'light');
-  fillModelSelectors();
-  renderOverview();
-  renderModel();
-  $('#instSlider').oninput=renderFair; renderFair();
-  renderClassTable();
+  $('#instSlider').oninput=renderFair;
+  setExp(0);               // 填 DATA + 渲染 總覽/模型/類別 各分頁
+  renderAnalysis();        // 跨實驗學術解析（一次渲染，不隨切換器變動）
   initPredict();
   if(location.hash) activateTab(location.hash.slice(1));
-  $('#foot').innerHTML=`資料來源：本地 result/（comparison_overall.csv、per_class_metrics.csv、class_frequency.csv）· ${DATA.models.length} 個模型 · 訓練 ${DATA.epochs_note} epochs · 靜態儀表板由 build_site.py 產生。`;
+  $('#foot').innerHTML=`資料來源：result/（實驗一：51 類）與 result_all/（實驗二：5 群）之 comparison / per_class / class_frequency CSV · 每實驗 ${EXPS[0].models.length} 組模型 · 訓練 ${EXPS[0].epochs_note} epochs · 靜態儀表板由 build_site.py 產生。`;
 }).catch(e=>{ document.querySelector('main').innerHTML='<div class="card panel">⚠️ 載入 data.json 失敗：'+e.message+'<br><span class="note">請以 HTTP 伺服器開啟（cd site && python3 -m http.server），不要直接雙擊 file://。</span></div>'; });
 </script>
 </body>
