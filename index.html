@@ -241,7 +241,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 
   <!-- PREDICT -->
   <section class="tab" id="predict">
-    <div class="pre-warn">⚙️ 即時預測由後端（Hugging Face Space）執行，目前部署的是<b>實驗一（51 類細項）權重</b>；5 群模型如需線上預測需另行更新 Space。免費 Space 閒置會休眠，<b>首次請求可能需等待 30–60 秒冷啟動</b>，屬正常。</div>
+    <div class="pre-warn">⚙️ 即時預測由後端（Hugging Face Space）執行，<b>實驗一（51 類）與實驗二（5 群）權重皆已部署</b>，可在下方選單切換。免費 Space 閒置會休眠，<b>首次請求可能需等待 30–60 秒冷啟動</b>，屬正常。</div>
     <div class="row2">
       <div class="card panel">
         <h3>設定</h3>
@@ -409,8 +409,10 @@ function renderAllCharts(){
 function fillModelSelectors(){
   const opts=DATA.overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('');
   $('#modelSel').innerHTML=opts; $('#clsModelSel').innerHTML=opts;
-  // 即時預測固定用實驗一（51 類）模型清單：HF Space 目前部署的是 51 類權重
-  $('#predModelSel').innerHTML=EXPS[0].overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('');
+  // 即時預測：兩實驗權重皆已部署於 Space；實驗二權重檔名加 g5__ 前綴
+  $('#predModelSel').innerHTML=
+    `<optgroup label="${EXPS[0].label}">`+EXPS[0].overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('')+'</optgroup>'+
+    `<optgroup label="${EXPS[1].label}">`+EXPS[1].overall.map(r=>`<option value="g5__${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('')+'</optgroup>';
   $('#modelSel').onchange=renderModel; $('#clsModelSel').onchange=renderClassTable;
 }
 function curRun(){return $('#modelSel').value;}
