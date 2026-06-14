@@ -111,6 +111,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 .expnote{font-size:12px;color:var(--accent-2);font-weight:700;margin:0 2px 10px}
 .prose{font-size:14px;line-height:1.75}
 .prose p{margin:0 0 10px}
+.prose h4{font-size:14px;margin:14px 0 4px}
 .prose ul{margin:6px 0 10px;padding-left:22px}
 .prose li{margin-bottom:5px}
 .prose b.num{font-variant-numeric:tabular-nums;color:var(--accent)}
@@ -233,7 +234,11 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     <div class="card panel prose" id="anaArchWhy"></div>
     <div class="archgrid" id="anaArch" style="margin-top:16px"></div>
 
-    <h2 class="section">肆、各架構擅長的標籤類型（逐類別比對）</h2>
+    <h2 class="section">肆、Precision / Recall 深入討論（尤其 Transformer）</h2>
+    <div class="card panel" style="overflow:auto"><table id="anaPRtable"><thead></thead><tbody></tbody></table></div>
+    <div class="card panel prose" id="anaPRtext" style="margin-top:14px"></div>
+
+    <h2 class="section">伍、各架構擅長的標籤類型（逐類別比對）</h2>
     <div class="card panel prose" id="anaLabel"></div>
     <div class="row2" style="margin-top:14px">
       <div class="card panel" style="overflow:auto"><h3>YOLO 表現最好的標籤</h3><table id="anaLabelY"><thead></thead><tbody></tbody></table></div>
@@ -241,13 +246,13 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     </div>
     <div class="card panel prose" id="anaLabelWhy" style="margin-top:14px"></div>
 
-    <h2 class="section">伍、類別粒度效應（實驗一 51 類 vs 實驗二 5 群）</h2>
+    <h2 class="section">陸、類別粒度效應（實驗一 51 類 vs 實驗二 5 群）</h2>
     <div class="card panel prose" id="anaOverall"></div>
 
-    <h2 class="section">陸、樣本瓶頸與分群設計的反思</h2>
+    <h2 class="section">柒、樣本瓶頸與分群設計的反思</h2>
     <div class="card panel prose" id="anaSample"></div>
 
-    <h2 class="section">柒、研究限制與下一步建議</h2>
+    <h2 class="section">捌、研究限制與下一步建議</h2>
     <div class="card panel prose" id="anaLimit"></div>
   </section>
 
@@ -689,6 +694,33 @@ function renderAnalysis(){
       <div><div class="note">實驗二</div><div class="v mono">${fmt(b2)}</div></div>
       <div><div class="note">實驗三</div><div class="v mono">${fmt(b3)}</div></div></div>
       <p>${a.mech}</p></div>`;}).join('');
+
+  // ====== 肆、Precision / Recall 深入討論（尤其 Transformer）======
+  (function(){
+    const exps2=[e1,e2,e3].filter(Boolean);
+    const xl={c51:'實驗一 51類',g5:'實驗二 5群',g5p:'實驗三 5群改進'};
+    const prRows=exps2.map(e=>{const y=yoloBest(e),r=rtBest(e);return{
+      exp:xl[e.id]||e.label, yP:y?y.precision:null,yR:y?y.recall:null,rP:r?r.precision:null,rR:r?r.recall:null};});
+    $('#anaPRtable').innerHTML='<thead><tr><th style="text-align:left">實驗</th><th>YOLO Precision</th><th>YOLO Recall</th><th>RT-DETR Precision</th><th>RT-DETR Recall</th></tr></thead><tbody>'+
+      prRows.map(r=>`<tr><td style="text-align:left">${r.exp}</td><td class="mono">${fmt(r.yP)}</td><td class="mono">${fmt(r.yR)}</td><td class="mono" style="color:var(--bad)"><b>${fmt(r.rP)}</b></td><td class="mono" style="color:var(--bad)"><b>${fmt(r.rR)}</b></td></tr>`).join('')+'</tbody>';
+    const r1=rtBest(e1), r2=rtBest(e2), r3=e3&&rtBest(e3);
+    const y1=yoloBest(e1), y3=e3&&yoloBest(e3), y2=yoloBest(e2);
+    $('#anaPRtext').innerHTML=`
+    <p><b>把 mAP 拆成 precision（報得準不準）與 recall（找得全不全），最能看穿 Transformer 的問題——它的低分不是「平均地差」，而是 recall 嚴重崩塌。</b></p>
+    <h4 style="color:var(--bad);margin:12px 0 4px">RT-DETR：高 precision、近零 recall ＝ 欠擬合的警訊（不是優點）</h4>
+    <ul>
+      <li><b>51 類時最極端</b>：RT-DETR precision 高達 <b class="num">${fmt(r1&&r1.precision)}</b>，但 recall 僅 <b class="num">${fmt(r1&&r1.recall)}</b>。意思是它<b>幾乎不開口，只在極少數最有把握的目標上預測</b>，所以開口的多半對（precision 漂亮），卻漏掉約 <b class="num">${r1?Math.round((1-r1.recall)*100):'~99'}%</b> 的劣化。<b>這個高 precision 是假象</b>——它是「嚴重少報」的副作用，不代表模型好。</li>
+      <li><b>成因</b>：DETR 家族用「固定數量 object queries ＋ 匈牙利一對一匹配」。在 51 類 × 樣本少 × 20 epochs 下，模型學不會把 query 指派到多數物件，輸出極度稀疏 → recall 趨近 0。這是 DETR 在資料/訓練不足時的典型行為。</li>
+      <li><b>任務簡化後 precision 反而崩</b>：5 群時 RT-DETR 開始多預測（recall 升到 <b class="num">${fmt(r2&&r2.recall)}</b>），但錯報也變多（precision 跌到 <b class="num">${fmt(r2&&r2.precision)}</b>）。它<b>沒有「又準又全」的甜蜜點</b>——不是高 P 低 R，就是低 P 低 R。實驗三更是兩者皆低（P ${fmt(r3&&r3.precision)} / R ${fmt(r3&&r3.recall)}）。</li>
+    </ul>
+    <h4 style="margin:12px 0 4px">YOLO：較均衡，且改進同時拉高 P 與 R</h4>
+    <ul>
+      <li>YOLO 的 precision（${fmt(y1&&y1.precision)}~${fmt(y3&&y3.precision)}）與 recall（${fmt(y2&&y2.recall)}~${fmt(y3&&y3.recall)}）都在合理區間，不會出現「高 P、零 R」的病態。</li>
+      <li><b>改進配方（1280＋copy-paste＋100ep）同時拉高兩者</b>：實驗二→三，YOLO precision ${fmt(y2&&y2.precision)} → <b class="num">${fmt(y3&&y3.precision)}</b>、recall ${fmt(y2&&y2.recall)} → <b class="num">${fmt(y3&&y3.recall)}</b>。同一配方對 RT-DETR 則 precision 仍低、recall 反降——P/R 層級再次印證架構分歧。</li>
+    </ul>
+    <h4 style="margin:12px 0 4px">對本應用的意涵：recall 才是關鍵</h4>
+    <p>本系統的目的是<b>輔助文物普查、別漏看劣化</b>，因此 <b>recall 比 precision 重要</b>（漏報＝文物未被檢出，比誤報嚴重）。RT-DETR 的近零 recall 使它<b>無論 precision 多高都不堪用</b>——「只敢報極少數、其餘全漏」對普查沒有價值。YOLO 的 recall 雖仍只有約 0.19（仍漏看約八成，是後續切片要解的問題），但已遠比 RT-DETR 健康。最終 mAP 同時懲罰漏看與誤報，而 RT-DETR 的 mAP 低主要被 <b>recall</b> 拖垮。</p>`;
+  })();
 
   // ====== 肆、各架構擅長的標籤類型（逐類別比對，用實驗一 51 類最細緻）======
   (function(){
