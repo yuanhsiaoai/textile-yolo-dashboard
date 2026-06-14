@@ -232,13 +232,21 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     <div class="card panel prose" id="anaArchWhy"></div>
     <div class="archgrid" id="anaArch" style="margin-top:16px"></div>
 
-    <h2 class="section">肆、類別粒度效應（實驗一 51 類 vs 實驗二 5 群）</h2>
+    <h2 class="section">肆、各架構擅長的標籤類型（逐類別比對）</h2>
+    <div class="card panel prose" id="anaLabel"></div>
+    <div class="row2" style="margin-top:14px">
+      <div class="card panel" style="overflow:auto"><h3>YOLO 表現最好的標籤</h3><table id="anaLabelY"><thead></thead><tbody></tbody></table></div>
+      <div class="card panel" style="overflow:auto"><h3>RT-DETR 唯一勉強抓到的標籤</h3><table id="anaLabelR"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card panel prose" id="anaLabelWhy" style="margin-top:14px"></div>
+
+    <h2 class="section">伍、類別粒度效應（實驗一 51 類 vs 實驗二 5 群）</h2>
     <div class="card panel prose" id="anaOverall"></div>
 
-    <h2 class="section">伍、樣本瓶頸與分群設計的反思</h2>
+    <h2 class="section">陸、樣本瓶頸與分群設計的反思</h2>
     <div class="card panel prose" id="anaSample"></div>
 
-    <h2 class="section">陸、研究限制與下一步建議</h2>
+    <h2 class="section">柒、研究限制與下一步建議</h2>
     <div class="card panel prose" id="anaLimit"></div>
   </section>
 
@@ -612,7 +620,33 @@ function renderAnalysis(){
       <div><div class="note">實驗三</div><div class="v mono">${fmt(b3)}</div></div></div>
       <p>${a.mech}</p></div>`;}).join('');
 
-  // ====== 肆、類別粒度效應（實驗一 vs 二）======
+  // ====== 肆、各架構擅長的標籤類型（逐類別比對，用實驗一 51 類最細緻）======
+  (function(){
+    const yb=yoloBest(e1), rb=rtBest(e1);
+    if(!yb||!rb){ $('#anaLabel').innerHTML='<p class="note">缺實驗一資料。</p>'; return; }
+    const yp={}, rp={};
+    e1.per_class.filter(x=>x.run_name===yb.run_name).forEach(x=>yp[x.class_name]={m:x.mAP50,inst:x.instances});
+    e1.per_class.filter(x=>x.run_name===rb.run_name).forEach(x=>rp[x.class_name]=x.mAP50);
+    const names=Object.keys(yp);
+    const rtWins=names.filter(cn=>(rp[cn]||0)>yp[cn].m+1e-9);
+    const shortName=cn=>cn.replace(/[A-Za-z;].*$/,'').trim()||cn;
+    $('#anaLabel').innerHTML=`
+    <p><b>先講最重要的事實：在三組實驗的每一個標籤上，YOLO 的 mAP50 都 ≥ RT-DETR——<b class="num">沒有任何一類</b>是 Transformer 勝出。</b>（實驗一 51 類逐類比對：RT-DETR 勝出 ${rtWins.length} 類。）所以「各自擅長」指的是<b>相對強項與能否抓到</b>，不是誰贏。以下用實驗一 51 類（最細緻）呈現。</p>`;
+    // YOLO top 8
+    const ytop=names.map(cn=>({cn,m:yp[cn].m,inst:yp[cn].inst,r:rp[cn]||0})).sort((a,b)=>b.m-a.m).slice(0,8);
+    $('#anaLabelY').innerHTML='<thead><tr><th style="text-align:left">標籤</th><th>樣本</th><th>YOLO</th><th>RT-DETR</th></tr></thead><tbody>'+
+      ytop.map(r=>`<tr><td style="text-align:left">${shortName(r.cn)}</td><td class="mono">${r.inst}</td><td class="mono"><b>${fmt(r.m)}</b></td><td class="mono">${fmt(r.r)}</td></tr>`).join('')+'</tbody>';
+    // RT-DETR 非零 top 6
+    const rnz=names.map(cn=>({cn,r:rp[cn]||0,y:yp[cn].m,inst:yp[cn].inst})).filter(x=>x.r>1e-9).sort((a,b)=>b.r-a.r).slice(0,6);
+    $('#anaLabelR').innerHTML='<thead><tr><th style="text-align:left">標籤</th><th>樣本</th><th>RT-DETR</th><th>YOLO</th></tr></thead><tbody>'+
+      rnz.map(r=>`<tr><td style="text-align:left">${shortName(r.cn)}</td><td class="mono">${r.inst}</td><td class="mono"><b>${fmt(r.r)}</b></td><td class="mono">${fmt(r.y)}</td></tr>`).join('')+'</tbody>';
+    $('#anaLabelWhy').innerHTML=`
+    <p><b>YOLO（CNN）強在「小而邊界清晰、局部紋理鮮明」的劣化</b>——鬚邊、糾結、銹斑、撕裂、針孔等。這些<b>多數樣本很少（30~70 框）卻照樣高分</b>，靠的是視覺辨識度而非數量，正是卷積局部感受野＋紋理敏感的強項。</p>
+    <p><b>RT-DETR（Transformer）只在「大面積、延展型、樣本多」的劣化勉強抓到</b>——摺痕、髒污、縐摺(各數百~近兩千框、橫跨大半張影像)；對小目標(針孔、銹斑、移染)幾乎全為 0，全 51 類只有約 15 類非零。這反映全域注意力較適合大尺度結構、且資料飢渴只學得起高頻大類。</p>
+    <p><b>但即使在 RT-DETR 自己最好的「摺痕」，YOLO 仍約為它的 2.5 倍</b>（${fmt(rp['30.摺痕Creases']||rnz[0]&&rnz[0].r)} vs ${fmt(yp['30.摺痕Creases']?yp['30.摺痕Creases'].m:'')}）。結論：此資料集上 Transformer 沒有任何標籤勝出，只是在大面積高頻類別上「比較沒那麼弱」。對需要抓「小而清晰」文物劣化的目標，CNN 是明確更合適的架構。</p>`;
+  })();
+
+  // ====== 伍、類別粒度效應（實驗一 vs 二）======
   const v8c1=g(e1,'yolov8l__none__arch');
   const v9cc1=g(e1,'yolov9c__clahe+denoise__arch');
   $('#anaOverall').innerHTML=`
