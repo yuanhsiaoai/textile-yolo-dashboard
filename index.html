@@ -139,6 +139,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
       <button data-tab="model">模型細節</button>
       <button data-tab="cls">類別分析</button>
       <button data-tab="analysis">學術解析</button>
+      <button data-tab="models">模型介紹</button>
       <button data-tab="predict">即時預測</button>
     </nav>
     <div class="expswitch" id="expSwitch"></div>
@@ -248,6 +249,15 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 
     <h2 class="section">柒、研究限制與下一步建議</h2>
     <div class="card panel prose" id="anaLimit"></div>
+  </section>
+
+  <!-- MODELS（各架構詳解與文獻） -->
+  <section class="tab" id="models">
+    <p class="expnote">本頁整理比較矩陣中 5 種架構的設計細節、版本演進與原始文獻；所有文獻已查證 arXiv／出版資訊（YOLOv8、YOLO11 為 Ultralytics 軟體釋出、無正式論文）。</p>
+    <h2 class="section">YOLO 家族演進脈絡</h2>
+    <div class="card panel prose" id="modelsLineage"></div>
+    <h2 class="section">各架構詳解與文獻</h2>
+    <div id="modelsCards"></div>
   </section>
 
   <!-- PREDICT -->
@@ -486,6 +496,66 @@ function renderClassTable(){
 }
 
 /* ================= ANALYSIS（跨實驗學術解析） ================= */
+const MODELS=[
+  {key:'yolov8l',name:'YOLOv8-L',fam:'CNN',org:'Ultralytics',year:'2023',spec:'約 43.7M 參數 · 165 GFLOPs',
+   desc:'Ultralytics 在 YOLOv5 基礎上的重大改版，確立現代 YOLO 的工程基準；統一框架同時支援偵測／分割／分類／姿態估計，是本研究參數量最大的 CNN。',
+   innov:['<b>C2f 模組</b>：取代 YOLOv5 的 C3，提供更豐富的梯度流與跨階段特徵融合','<b>Anchor-free</b>：取消預設錨框，直接預測物件中心','<b>解耦偵測頭</b>：分類與邊框回歸分支分離，各自最佳化','<b>TAL 動態標籤分配</b>（Task-Aligned Assigner）：依分類×定位對齊度挑正樣本'],
+   impr:'相對 v5/v7：C3→C2f、anchor-based→anchor-free、耦合頭→解耦頭、靜態→動態標籤分配。',
+   inours:'5 群粗粒度任務的常勝架構（容量最大，最能吸收類內多種外觀）。',
+   refs:[{t:'Jocher, G., Chaurasia, A., & Qiu, J. (2023). Ultralytics YOLOv8 (v8.0.0) [軟體]. GitHub.',u:'https://github.com/ultralytics/ultralytics'}]},
+  {key:'yolov9c',name:'YOLOv9-C',fam:'CNN',org:'中研院（Wang & Liao 團隊）',year:'2024',spec:'約 25.3M 參數 · 102 GFLOPs',
+   desc:'學界提出，針對深層網路的「資訊瓶頸」（淺層細節梯度在深層被稀釋）問題設計，以較小參數量達到 SOTA 參數利用率。',
+   innov:['<b>PGI（可程式梯度資訊）</b>：訓練期加入可逆輔助分支，保住淺層細節梯度不流失，緩解資訊瓶頸（推論時移除、不增加成本）','<b>GELAN（廣義高效層聚合）</b>：結合 CSPNet 與 ELAN 的梯度路徑規劃，僅用傳統卷積即超越 depthwise 方案的參數利用率'],
+   impr:'相對 v7：以 PGI 解決深層資訊瓶頸、以 GELAN 取代固定 ELAN，參數更省、梯度資訊保真更佳。',
+   inours:'51 類細粒度任務奪冠（PGI 保住細節梯度，最利於樣本少又靠細微紋理區分的類別）；實驗三改進配方下亦重新登頂。',
+   refs:[{t:'Wang, C.-Y., Yeh, I-H., & Liao, H.-Y. M. (2024). YOLOv9: Learning What You Want to Learn Using Programmable Gradient Information. ECCV 2024. arXiv:2402.13616.',u:'https://arxiv.org/abs/2402.13616'}]},
+  {key:'yolov10l',name:'YOLOv10-L',fam:'CNN',org:'清華大學',year:'2024',spec:'約 24.4M 參數 · 120 GFLOPs',
+   desc:'以「端到端、免 NMS」為目標的即時偵測器，從效率與準確度雙軸全面重新設計各組件。',
+   innov:['<b>一致雙重指派（consistent dual assignments）</b>：訓練時並用一對多（豐富監督）與一對一（免 NMS）兩種標籤指派，推論時走一對一頭 → 真正端到端、免 NMS 後處理','<b>整體效率設計</b>：輕量化分類頭、空間-通道解耦下採樣、rank-guided 區塊設計，降低運算量'],
+   impr:'相對 v8/v9：取消推論階段的 NMS（雙重指派），並系統性精簡組件以降延遲。',
+   inours:'一對一監督較稀疏、收斂較慢；20ep 時 recall 偏低，100ep＋1280 後明顯回升。',
+   refs:[{t:'Wang, A., Chen, H., Liu, L., et al. (2024). YOLOv10: Real-Time End-to-End Object Detection. NeurIPS 2024. arXiv:2405.14458.',u:'https://arxiv.org/abs/2405.14458'}]},
+  {key:'yolo11l',name:'YOLO11-L',fam:'CNN',org:'Ultralytics',year:'2024',spec:'約 25.3M 參數 · 87 GFLOPs',
+   desc:'Ultralytics 最新世代，走「參數效率」路線：以約 YOLOv8-L 六成參數、一半運算量換取相近或更佳精度。',
+   innov:['<b>C3k2 區塊</b>：取代 C2f，改用較小卷積核、進一步降參數','<b>C2PSA（並行空間注意力）</b>：在骨幹末端加入空間注意力，聚焦關鍵區域','保留 <b>SPPF</b> 空間金字塔池化'],
+   impr:'相對 v8：C2f→C3k2（更省參數）、新增 C2PSA 注意力；以更小模型維持精度。',
+   inours:'參數效率路線在細項任務尚可（注意力利於小區域），但粗粒度大類需要的是容量，略遜大模型。',
+   refs:[{t:'Jocher, G., & Qiu, J. (2024). Ultralytics YOLO11 (v11.0.0) [軟體]. GitHub.',u:'https://github.com/ultralytics/ultralytics'},
+         {t:'（綜述）Khanam, R., & Hussain, M. (2024). YOLOv11: An Overview of the Key Architectural Enhancements. arXiv:2410.17725.',u:'https://arxiv.org/abs/2410.17725'}]},
+  {key:'rtdetr-l',name:'RT-DETR-L',fam:'Transformer',org:'百度（Baidu）',year:'2023/2024',spec:'約 32M 參數 · 110 GFLOPs',
+   desc:'DETR 家族首個「即時」端到端偵測器，證明 Transformer 偵測器可在即時場景勝過同級 YOLO（COCO 53.0% AP / T4 114 FPS）。承襲 DETR 的集合預測＋匈牙利二分匹配，天生免 NMS。',
+   innov:['<b>高效混合編碼器</b>：解耦「尺度內互動」與「跨尺度融合」，大幅降低多尺度注意力的運算成本','<b>IoU-aware 查詢選擇</b>：挑選高品質的初始物件查詢，加速收斂','<b>可調解碼層數</b>：免重訓即可調整速度／精度','<b>集合預測＋匈牙利匹配</b>（承襲 DETR）：每個目標唯一配對，免 NMS'],
+   impr:'相對原始 DETR（Carion 2020）：解決其運算成本高、收斂極慢的痛點，首度達到即時。但仍承襲 DETR 的資料飢渴與收斂慢特性。',
+   inours:'唯一的 Transformer，走勢與 YOLO 相反：最佳成績落在最單純的實驗二（0.033），51 類與實驗三的高解析＋合成增強對它全是逆風（資料飢渴＋全域注意力對全域雜訊敏感）。',
+   refs:[{t:'Zhao, Y., Lv, W., Xu, S., et al. (2024). DETRs Beat YOLOs on Real-time Object Detection. CVPR 2024. arXiv:2304.08069.',u:'https://arxiv.org/abs/2304.08069'},
+         {t:'（奠基）Carion, N., Massa, F., Synnaeve, G., et al. (2020). End-to-End Object Detection with Transformers (DETR). ECCV 2020. arXiv:2005.12872.',u:'https://arxiv.org/abs/2005.12872'}]},
+];
+
+function renderModels(){
+  $('#modelsLineage').innerHTML=`
+  <p>本研究比較矩陣涵蓋<b>兩條技術路線</b>：YOLO 系列（v8 → v9 → v10 → v11，皆為 CNN）與 RT-DETR（Transformer）。YOLO 家族的演進主軸是「<b>在維持即時的前提下，用更聰明的梯度流與更省的結構換取精度</b>」：</p>
+  <ul>
+    <li><b>YOLOv8（2023）</b>：C2f＋anchor-free＋解耦頭＋動態標籤分配，奠定現代 YOLO 工程基準。</li>
+    <li><b>YOLOv9（2024）</b>：以 PGI＋GELAN 解決「深層資訊瓶頸」，提升梯度資訊保真與參數利用率。</li>
+    <li><b>YOLOv10（2024）</b>：以「一致雙重指派」取消推論 NMS，達成真正端到端。</li>
+    <li><b>YOLO11（2024）</b>：C3k2＋C2PSA，走參數效率路線，以更小模型維持精度。</li>
+    <li><b>RT-DETR（2023/2024）</b>：另一條路線——以 Transformer 的全域注意力＋集合預測取代密集錨點，是 DETR 家族首個即時版本。</li>
+  </ul>
+  <p class="note">註：YOLOv8 與 YOLO11 由 Ultralytics 以軟體形式釋出，無同儕審查論文，引用其官方軟體 BibTeX；YOLOv9（ECCV）、YOLOv10（NeurIPS）、RT-DETR（CVPR）均有正式論文。</p>`;
+  $('#modelsCards').innerHTML=MODELS.map(m=>{
+    const famcol=m.fam==='Transformer'?'var(--bad)':'var(--accent)';
+    return `<div class="card panel prose" style="margin-bottom:16px">
+      <h3 style="font-size:17px">${m.name} <span class="badge" style="color:${famcol}">${m.fam}</span>
+        <span class="note" style="font-weight:400">· ${m.org} · ${m.year} · ${m.spec}</span></h3>
+      <p>${m.desc}</p>
+      <p style="margin-bottom:4px"><b>關鍵創新</b></p><ul>${m.innov.map(x=>`<li>${x}</li>`).join('')}</ul>
+      <p><b>版本改進：</b>${m.impr}</p>
+      <p><b>在本研究的表現：</b>${m.inours}</p>
+      <p style="margin-bottom:4px"><b>文獻</b></p>
+      <ol style="font-size:13px;color:var(--muted)">${m.refs.map(r=>`<li style="margin-bottom:4px">${r.t} <a href="${r.u}" target="_blank" rel="noopener">[連結]</a></li>`).join('')}</ol>
+    </div>`;}).join('');
+}
+
 const ARCH_INFO={
   'yolov8l':{name:'YOLOv8-L',fam:'CNN',spec:'約 43.7M 參數 · 165 GFLOPs',
     chg:'C2f 跨階段模組＋解耦偵測頭＋anchor-free（TAL 動態標籤分配）',
@@ -724,6 +794,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   $('#instSlider').oninput=renderFair;
   setExp(0);               // 填 DATA + 渲染 總覽/模型/類別 各分頁
   renderAnalysis();        // 跨實驗學術解析（一次渲染，不隨切換器變動）
+  renderModels();          // 模型介紹（靜態內容＋已查證文獻）
   initPredict();
   if(location.hash) activateTab(location.hash.slice(1));
   $('#foot').innerHTML=`資料來源：result/（實驗一：51 類）與 result_all/（實驗二：5 群）之 comparison / per_class / class_frequency CSV · 每實驗 ${EXPS[0].models.length} 組模型 · 訓練 ${EXPS[0].epochs_note} epochs · 靜態儀表板由 build_site.py 產生。`;
