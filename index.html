@@ -252,6 +252,11 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     <h2 class="section">三實驗設定對照</h2>
     <div class="card panel" style="overflow:auto"><table id="anaSetup"><thead></thead><tbody></tbody></table></div>
 
+    <h2 class="section">5 群分群組成（各群包含的原 51 類細項）</h2>
+    <p class="note" style="margin:-6px 2px 12px">實驗二／三的 5 群由原 51 類依「劣化成因」重映射而成（textile_202606）。括號為該細項的標註框數；灰色為 0 框（無樣本）。</p>
+    <div class="archgrid" id="anaGroups"></div>
+
+
     <h2 class="section">壹、改進步驟：實驗二 → 實驗三做了什麼</h2>
     <div class="card panel prose" id="anaSteps"></div>
     <div class="card panel" style="overflow:auto;margin-top:14px">
@@ -620,6 +625,21 @@ const fmtD=(v,d=3)=>v==null?'—':(v>=0?'+':'')+v.toFixed(d);
 const dcell=v=>v==null?'—':`<span class="${v>=0?'delta-up':'delta-dn'} mono">${fmtD(v)}</span>`;
 const ARCHS=['yolov8l','yolov9c','yolov10l','yolo11l','rtdetr-l'];
 
+const GROUPS5=[
+  {id:0,name:'結構性劣化',en:'Structural',total:1669,items:[['缺失',434],['破洞',424],['鉤紗/鉤絲',226],['繡線鬆脫',134],['滑紗',78],['鬚邊',74],['縫合開裂',56],['斷裂',55],['副料鬆脫',50],['舊補',46],['撕裂',34],['針孔',31],['裂縫',21],['脆化',3],['纖維落屑',2],['人為破壞',1],['焦痕',0],['紗環滑脫',0],['硬化',0]]},
+  {id:1,name:'色彩性劣化',en:'Color',total:775,items:[['黃化',240],['摩擦掉色',203],['褪色',150],['移染',148],['變色',34],['霜斑',0]]},
+  {id:2,name:'汙染性劣化',en:'Stain/Contamination',total:2218,items:[['髒污',1939],['水漬/潮痕',96],['外來附著物',45],['銹斑',44],['色料污染',30],['黏著劑污染',27],['硬垢',17],['漿糊',9],['黏膠標籤',7],['黴害',2],['金屬腐蝕',2],['灰塵',0]]},
+  {id:3,name:'生物性劣化',en:'Biological',total:75,items:[['動物/昆蟲危害',50],['咬痕',12],['昆蟲排泄物',10],['黴斑',3],['殘渣',0]]},
+  {id:4,name:'形變磨耗性劣化',en:'Deformation & Wear',total:1612,items:[['縐摺',652],['摺痕',518],['磨損',334],['變形',57],['糾結',34],['起毬',9],['剝離起泡',8],['收縮',0]]},
+];
+function renderGroups(){
+  $('#anaGroups').innerHTML=GROUPS5.map(g=>`<div class="card archcard">
+    <h4>${g.id+1}. ${g.name} <span class="note" style="font-weight:400">${g.en}</span></h4>
+    <div class="spec">共 ${g.total.toLocaleString()} 框 · ${g.items.length} 個原細項</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${g.items.map(([n,c])=>
+      `<span class="badge" style="${c===0?'opacity:.45':''}">${n}<span class="mono" style="color:var(--muted);font-weight:400"> ${c}</span></span>`).join('')}</div>
+  </div>`).join('');
+}
 function renderAnalysis(){
   const byId=id=>EXPS.find(e=>e.id===id);
   const e1=byId('c51'), e2=byId('g5'), e3=byId('g5p');
@@ -651,6 +671,8 @@ function renderAnalysis(){
      ['分割 / seed','8:1:1 / 42','8:1:1 / 42','8:1:1 / 42'],
      ['模型矩陣','13 組','13 組','13 組'],
     ].map(r=>`<tr><td style="text-align:left">${r[0]}</td><td style="text-align:left">${r[1]}</td><td style="text-align:left">${r[2]}</td><td style="text-align:left">${r[3]}</td></tr>`).join('')+'</tbody>';
+
+  renderGroups();
 
   // ====== 壹、改進步驟 ======
   const v9n2=g(e2,'yolov9c__none__arch'), v9n3=g(e3,'yolov9c__none__arch');
