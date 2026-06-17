@@ -192,6 +192,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
   <section class="tab active" id="overview">
     <p class="expnote" data-expnote></p>
     <div class="grid kpis" id="kpis"></div>
+    <div class="card panel" id="sahiNote" style="display:none;margin-top:4px"></div>
     <h2 class="section">模型排行榜（獨立測試集）</h2>
     <div class="card panel" style="overflow:auto">
       <table id="leaderboard"><thead></thead><tbody></tbody></table>
@@ -246,42 +247,58 @@ input[type=range]{flex:1;accent-color:var(--accent)}
 
   <!-- ANALYSIS（跨實驗學術解析，不受右上切換器影響） -->
   <section class="tab" id="analysis">
-    <p class="expnote">本頁交叉比對三組實驗（實驗一 51 類細項 / 實驗二 5 群分群 / 實驗三 5 群＋改進）共 39 組訓練。同一標註來源、同一 seed=42；所有數字均來自獨立測試集實測。</p>
+    <p class="expnote">本頁交叉比對五組實驗，研究路線為<b>「先大分類、後細項」</b>：先在 <b>5 群粗粒度</b>建立可行性與改進手段（實驗一 基準 → 二 改進 → 三 切片＋SAHI），再進入 <b>51 類細粒度</b>挑戰細節偵測（實驗四 基準 → 五 切片＋SAHI）。同一標註來源、同一 seed=42；所有數字均來自獨立測試集實測。切片實驗另附 <b>SAHI 全圖公平指標</b>（與非切片可比）。</p>
     <div class="grid kpis" id="anaKpis"></div>
 
-    <h2 class="section">三實驗設定對照</h2>
-    <div class="card panel" style="overflow:auto"><table id="anaSetup"><thead></thead><tbody></tbody></table></div>
+    <h2 class="section">五實驗設定對照</h2>
+    <div class="card panel" style="overflow:auto"><table id="anaSetup"><thead></thead><tbody></tbody></table>
+      <p class="note" style="margin:12px 2px 0">前三欄為 5 群「大分類」系列、後兩欄為 51 類「細項」系列。mAP 因類別數不同不可直接跨系列比大小，請看同系列趨勢或公允 mAP / SAHI。</p>
+    </div>
 
-    <h2 class="section">5 群分群組成（各群包含的原 51 類細項）</h2>
-    <p class="note" style="margin:-6px 2px 12px">實驗二／三的 5 群由原 51 類依「劣化成因」重映射而成（textile_202606）。括號為該細項的標註框數；灰色為 0 框（無樣本）。</p>
+    <h2 class="section">大分類的 5 群定義（各群包含的原 51 類細項）</h2>
+    <p class="note" style="margin:-6px 2px 12px">本研究先做的「大分類」即此 5 群——由原 51 類細項依「劣化成因」歸併而成（textile_202606）。括號為該細項的標註框數；灰色為 0 框（無樣本）。後段的「細項」系列即回到原始 51 類。</p>
     <div class="archgrid" id="anaGroups"></div>
 
+    <h2 class="section">壹、研究路線：為何先大分類、再做細項</h2>
+    <div class="card panel prose" id="anaRoute"></div>
 
-    <h2 class="section">壹、改進步驟：實驗二 → 實驗三做了什麼</h2>
+    <h2 class="section">貳、大分類（5 群）系列三步改進：基準 → 改進 → 切片</h2>
     <div class="card panel prose" id="anaSteps"></div>
     <div class="card panel" style="overflow:auto;margin-top:14px">
       <table id="anaImprove"><thead></thead><tbody></tbody></table>
-      <p class="note" style="margin:12px 2px 0">5 群同名 run：實驗二(640/20ep/無增強) → 實驗三(1280/100ep/copy-paste)。Δ 綠＝改進後上升。</p>
+      <p class="note" style="margin:12px 2px 0">5 群同名 run：實驗一(640/20ep/無增強) → 實驗二(1280/100ep/copy-paste)。Δ 綠＝改進後上升。</p>
     </div>
 
-    <h2 class="section">貳、YOLO 系列(CNN) vs RT-DETR(Transformer)：跨實驗軌跡</h2>
+    <h2 class="section">參、進入細項（51 類）：基準 vs 切片</h2>
+    <div class="card panel prose" id="anaFine"></div>
+    <div class="card panel" style="overflow:auto;margin-top:14px"><table id="anaFineTable"><thead></thead><tbody></tbody></table>
+      <p class="note" style="margin:12px 2px 0">51 類同名 run：實驗四(640) → 實驗五(切片)。注意 RT-DETR 與 YOLO 的反向變化。</p>
+    </div>
+
+    <h2 class="section">肆、YOLO 系列(CNN) vs RT-DETR(Transformer)：跨實驗軌跡</h2>
     <div class="row2">
-      <div class="card panel"><h3>各架構 best mAP50：實驗一 → 二 → 三</h3><canvas id="anaTraj" height="240"></canvas></div>
-      <div class="card panel"><h3>YOLO-best vs RT-DETR-best</h3><canvas id="anaTraj2" height="240"></canvas>
-        <p class="legend">同一條改進配方，CNN 與 Transformer 走勢相反。</p></div>
+      <div class="card panel"><h3>5 群系列 best mAP50：基準→改進→切片</h3><canvas id="anaTraj" height="240"></canvas></div>
+      <div class="card panel"><h3>51 類系列 best mAP50：基準→切片</h3><canvas id="anaTraj2" height="240"></canvas>
+        <p class="legend">切片在 51 類讓 RT-DETR 暴漲、YOLO 反崩——勝負翻面。</p></div>
     </div>
     <div class="card panel" style="overflow:auto;margin-top:14px"><table id="anaTrajTable"><thead></thead><tbody></tbody></table></div>
     <div class="card panel prose" id="anaTrajText" style="margin-top:14px"></div>
 
-    <h2 class="section">參、架構差異的重點原因：為何同一改進對兩者反向？</h2>
+    <h2 class="section">伍、架構差異的重點原因：為何切片是 RT-DETR 的轉捩點？</h2>
     <div class="card panel prose" id="anaArchWhy"></div>
     <div class="archgrid" id="anaArch" style="margin-top:16px"></div>
 
-    <h2 class="section">肆、Precision / Recall 深入討論（尤其 Transformer）</h2>
+    <h2 class="section">陸、SAHI 全圖公平評估：切片標準指標被膨脹了多少？</h2>
+    <div class="card panel prose" id="anaSahi"></div>
+    <div class="card panel" style="overflow:auto;margin-top:14px"><table id="anaSahiTable"><thead></thead><tbody></tbody></table>
+      <p class="note" style="margin:12px 2px 0">標準 mAP50 在切好的小圖上計算（膨脹）；SAHI 把模型滑窗推回原始全圖再評估，才與非切片實驗可比。</p>
+    </div>
+
+    <h2 class="section">柒、Precision / Recall 深入討論（尤其 Transformer）</h2>
     <div class="card panel" style="overflow:auto"><table id="anaPRtable"><thead></thead><tbody></tbody></table></div>
     <div class="card panel prose" id="anaPRtext" style="margin-top:14px"></div>
 
-    <h2 class="section">伍、各架構擅長的標籤類型（逐類別比對）</h2>
+    <h2 class="section">捌、各架構擅長的標籤類型（逐類別比對）</h2>
     <div class="card panel prose" id="anaLabel"></div>
     <div class="row2" style="margin-top:14px">
       <div class="card panel" style="overflow:auto"><h3>YOLO 表現最好的標籤</h3><table id="anaLabelY"><thead></thead><tbody></tbody></table></div>
@@ -289,13 +306,13 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     </div>
     <div class="card panel prose" id="anaLabelWhy" style="margin-top:14px"></div>
 
-    <h2 class="section">陸、類別粒度效應（實驗一 51 類 vs 實驗二 5 群）</h2>
+    <h2 class="section">玖、類別粒度效應（大分類 5 群 vs 細項 51 類）</h2>
     <div class="card panel prose" id="anaOverall"></div>
 
-    <h2 class="section">柒、樣本瓶頸與分群設計的反思</h2>
+    <h2 class="section">拾、樣本瓶頸與分群設計的反思</h2>
     <div class="card panel prose" id="anaSample"></div>
 
-    <h2 class="section">捌、研究限制與下一步建議</h2>
+    <h2 class="section">拾壹、研究限制與下一步建議</h2>
     <div class="card panel prose" id="anaLimit"></div>
   </section>
 
@@ -414,6 +431,22 @@ function renderOverview(){
   ];
   $('#kpis').innerHTML = kpis.map(k=>`<div class="card kpi"><div class="label">${k[0]}</div><div class="val ${k[3]}">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
 
+  // SAHI 全圖公平評估（僅切片實驗有）
+  const sn=$('#sahiNote');
+  const sahi=(DATA.sahi||[]).filter(s=>s.sahi_mAP50!=null);
+  if(sahi.length){
+    const sb=sahi[0];  // 已按 sahi_mAP50 由大到小排序
+    const stdRun=DATA.overall.find(r=>r.run_name===sb.run_name);
+    const rows=sahi.slice(0,6).map(s=>{const std=DATA.overall.find(r=>r.run_name===s.run_name)||{};
+      return `<tr><td style="text-align:left">${s.model} <span class="note">/ ${s.preprocess}</span></td>`+
+        `<td class="mono">${fmt(std.mAP50)}</td><td class="mono"><b>${fmt(s.sahi_mAP50)}</b></td>`+
+        `<td class="mono">${fmt(s['sahi_recall@0.5'])}</td><td class="mono"><b>${fmt(s['sahi_recall@0.3'])}</b></td></tr>`;}).join('');
+    sn.style.display='';
+    sn.innerHTML=`<h3 style="margin-top:0">SAHI 全圖公平評估（切片實驗專屬）</h3>
+      <p class="note" style="margin:2px 2px 12px">切片訓練的「標準指標」是在切好的小圖上算的，會<b>系統性膨脹</b>；SAHI（Slicing Aided Hyper Inference）把模型滑窗推回<b>原始全圖</b>再評估，才是與非切片實驗<b>可比的公平指標</b>。下表最佳一組：標準 mAP50 <b class="num">${fmt(stdRun&&stdRun.mAP50)}</b> → SAHI mAP50 <b class="num">${fmt(sb.sahi_mAP50)}</b>。</p>
+      <div style="overflow:auto"><table><thead><tr><th style="text-align:left">模型</th><th>標準 mAP50</th><th>SAHI mAP50</th><th>SAHI recall@0.5</th><th>SAHI recall@0.3</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } else { sn.style.display='none'; sn.innerHTML=''; }
+
   // leaderboard
   const cols=[['model','模型'],['preprocess','預處理'],['group','軸'],['mAP50','mAP50'],['mAP50-95','mAP50-95'],['precision','Precision'],['recall','Recall']];
   buildSortableTable($('#leaderboard'), cols, o, 'mAP50-95', (r,key)=>{
@@ -478,10 +511,12 @@ function renderAllCharts(){
 function fillModelSelectors(){
   const opts=DATA.overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('');
   $('#modelSel').innerHTML=opts; $('#clsModelSel').innerHTML=opts;
-  // 即時預測：兩實驗權重皆已部署於 Space；實驗二權重檔名加 g5__ 前綴
+  // 即時預測：已部署於 HF Space 的兩套權重 → c51（51 類，原名）與 g5（5 群，g5__ 前綴）。以 id 取，不受實驗重排影響。
+  const expById=id=>EXPS.find(e=>e.id===id);
+  const c51e=expById('c51'), g5e=expById('g5');
   $('#predModelSel').innerHTML=
-    `<optgroup label="${EXPS[0].label}">`+EXPS[0].overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('')+'</optgroup>'+
-    `<optgroup label="${EXPS[1].label}">`+EXPS[1].overall.map(r=>`<option value="g5__${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('')+'</optgroup>';
+    (c51e?`<optgroup label="${c51e.label}">`+c51e.overall.map(r=>`<option value="${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('')+'</optgroup>':'')+
+    (g5e?`<optgroup label="${g5e.label}">`+g5e.overall.map(r=>`<option value="g5__${r.run_name}">${r.model} / ${r.preprocess} (${r.group})</option>`).join('')+'</optgroup>':'');
   $('#modelSel').onchange=renderModel; $('#clsModelSel').onchange=renderClassTable;
 }
 function curRun(){return $('#modelSel').value;}
@@ -555,7 +590,7 @@ const MODELS=[
    desc:'學界提出，針對深層網路的「資訊瓶頸」（淺層細節梯度在深層被稀釋）問題設計，以較小參數量達到 SOTA 參數利用率。',
    innov:['<b>PGI（可程式梯度資訊）</b>：訓練期加入可逆輔助分支，保住淺層細節梯度不流失，緩解資訊瓶頸（推論時移除、不增加成本）','<b>GELAN（廣義高效層聚合）</b>：結合 CSPNet 與 ELAN 的梯度路徑規劃，僅用傳統卷積即超越 depthwise 方案的參數利用率'],
    impr:'相對 v7：以 PGI 解決深層資訊瓶頸、以 GELAN 取代固定 ELAN，參數更省、梯度資訊保真更佳。',
-   inours:'51 類細粒度任務奪冠（PGI 保住細節梯度，最利於樣本少又靠細微紋理區分的類別）；實驗三改進配方下亦重新登頂。',
+   inours:'51 類細粒度基準（非切片）奪冠（PGI 保住細節梯度，最利於樣本少又靠細微紋理區分的類別）；5 群改進配方下亦重新登頂。',
    refs:[{t:'Wang, C.-Y., Yeh, I-H., & Liao, H.-Y. M. (2024). YOLOv9: Learning What You Want to Learn Using Programmable Gradient Information. ECCV 2024. arXiv:2402.13616.',u:'https://arxiv.org/abs/2402.13616'}]},
   {key:'yolov10l',name:'YOLOv10-L',fam:'CNN',org:'清華大學',year:'2024',spec:'約 24.4M 參數 · 120 GFLOPs',
    desc:'以「端到端、免 NMS」為目標的即時偵測器，從效率與準確度雙軸全面重新設計各組件。',
@@ -574,7 +609,7 @@ const MODELS=[
    desc:'DETR 家族首個「即時」端到端偵測器，證明 Transformer 偵測器可在即時場景勝過同級 YOLO（COCO 53.0% AP / T4 114 FPS）。承襲 DETR 的集合預測＋匈牙利二分匹配，天生免 NMS。',
    innov:['<b>高效混合編碼器</b>：解耦「尺度內互動」與「跨尺度融合」，大幅降低多尺度注意力的運算成本','<b>IoU-aware 查詢選擇</b>：挑選高品質的初始物件查詢，加速收斂','<b>可調解碼層數</b>：免重訓即可調整速度／精度','<b>集合預測＋匈牙利匹配</b>（承襲 DETR）：每個目標唯一配對，免 NMS'],
    impr:'相對原始 DETR（Carion 2020）：解決其運算成本高、收斂極慢的痛點，首度達到即時。但仍承襲 DETR 的資料飢渴與收斂慢特性。',
-   inours:'唯一的 Transformer，走勢與 YOLO 相反：最佳成績落在最單純的實驗二（0.033），51 類與實驗三的高解析＋合成增強對它全是逆風（資料飢渴＋全域注意力對全域雜訊敏感）。',
+   inours:'唯一的 Transformer，表現高度依賴「是否切片」：非切片時類別越多、目標越小越崩（51 類基準近乎全崩）；一旦對 51 類切片（子圖樣本倍增＋目標放大），資料飢渴被補足而<b>暴漲登頂</b>，反超所有 YOLO。切片是它的轉捩點。',
    refs:[{t:'Zhao, Y., Lv, W., Xu, S., et al. (2024). DETRs Beat YOLOs on Real-time Object Detection. CVPR 2024. arXiv:2304.08069.',u:'https://arxiv.org/abs/2304.08069'},
          {t:'（奠基）Carion, N., Massa, F., Synnaeve, G., et al. (2020). End-to-End Object Detection with Transformers (DETR). ECCV 2020. arXiv:2005.12872.',u:'https://arxiv.org/abs/2005.12872'}]},
 ];
@@ -607,10 +642,10 @@ function renderModels(){
 const ARCH_INFO={
   'yolov8l':{name:'YOLOv8-L',fam:'CNN',spec:'約 43.7M 參數 · 165 GFLOPs',
     chg:'C2f 跨階段模組＋解耦偵測頭＋anchor-free（TAL 動態標籤分配）',
-    mech:'比較組中參數量最大的 CNN，容量最寬裕。在 5 群「一類容納多種外觀」的粗粒度任務最有餘裕；改進配方（高解析＋更長訓練）對它幾乎全是順風，實驗三仍居前段。'},
+    mech:'比較組中參數量最大的 CNN，容量最寬裕。在 5 群「一類容納多種外觀」的大分類任務最有餘裕；高解析＋更長訓練對它幾乎全是順風，5 群改進／切片仍居前段。'},
   'yolov9c':{name:'YOLOv9-C',fam:'CNN',spec:'約 25.3M 參數 · 102 GFLOPs',
     chg:'GELAN 廣義高效層聚合＋PGI 可程式梯度資訊（訓練期輔助可逆分支）',
-    mech:'PGI 以可逆輔助分支保住淺層細節梯度，細粒度時最吃香（實驗一奪冠）。改進配方下細節保真＋高解析相輔，實驗三重新登頂（mAP50 0.136、recall 0.187）。'},
+    mech:'PGI 以可逆輔助分支保住淺層細節梯度，細粒度時最吃香（51 類基準奪冠）。改進配方下細節保真＋高解析相輔，5 群改進重新登頂（mAP50 0.136、recall 0.187）。'},
   'yolov10l':{name:'YOLOv10-L',fam:'CNN',spec:'約 24.4M 參數 · 120 GFLOPs',
     chg:'NMS-free：一對一＋一對多雙重標籤指派、輕量化分類頭',
     mech:'一對一匹配監督訊號較稀疏、收斂較慢；20ep 時 recall 偏低，但 100ep＋1280 後明顯回升，是改進配方的受益者之一。'},
@@ -619,7 +654,7 @@ const ARCH_INFO={
     mech:'以約 v8l 六成參數換效率，局部注意力凸顯小區域；改進配方下同樣受益，但容量上限使它在粗粒度大類略遜大模型。'},
   'rtdetr-l':{name:'RT-DETR-L',fam:'Transformer',spec:'約 32M 參數 · 110 GFLOPs',
     chg:'Transformer 查詢式偵測：高效混合編碼器＋匈牙利匹配（set prediction，免 NMS）',
-    mech:'唯一的 Transformer，走勢與 YOLO 完全相反：最佳成績落在「最單純」的實驗二（5 類/640/無增強，0.033）；51 類（實驗一）匈牙利匹配學不起來（<0.01），而實驗三的 1280＋copy-paste＋100ep 對它全是逆風，反退回 0.009。資料飢渴＋收斂慢＋對全域雜訊敏感是主因。'},
+    mech:'唯一的 Transformer，成敗繫於「是否切片」：非切片時 51 類基準匈牙利匹配學不起來（recall 病態崩塌）、5 群也始終墊底；但對 51 類切片後，子圖樣本倍增＋目標放大正好補足資料飢渴，mAP50 暴漲至全場最高、反超所有 YOLO。切片是它的轉捩點，惟標準分數須以 SAHI 全圖指標校正。'},
 };
 const fmtD=(v,d=3)=>v==null?'—':(v>=0?'+':'')+v.toFixed(d);
 const dcell=v=>v==null?'—':`<span class="${v>=0?'delta-up':'delta-dn'} mono">${fmtD(v)}</span>`;
@@ -642,159 +677,231 @@ function renderGroups(){
 }
 function renderAnalysis(){
   const byId=id=>EXPS.find(e=>e.id===id);
-  const e1=byId('c51'), e2=byId('g5'), e3=byId('g5p');
-  if(!e1||!e2){ $('#anaKpis').innerHTML='<p class="note">需要至少實驗一、二資料。</p>'; return; }
+  // 5 群（大分類）系列：基準 g5 → 改進 g5p → 切片 g5t；51 類（細項）系列：基準 c51 → 切片 c51t
+  const g5b=byId('g5'), g5p=byId('g5p'), g5t=byId('g5t'), c51=byId('c51'), c51t=byId('c51t');
+  if(!g5b||!c51){ $('#anaKpis').innerHTML='<p class="note">需要至少 5 群基準與 51 類基準資料。</p>'; return; }
   const g=(exp,run)=>(exp&&exp.overall.find(r=>r.run_name===run))||{};
   const isRt=r=>(''+r.model).includes('rtdetr');
   const maxBy=(exp,filt)=>{const rs=(exp?exp.overall:[]).filter(filt);return rs.length?rs.reduce((a,b)=>b.mAP50>a.mAP50?b:a):null;};
   const yoloBest=exp=>maxBy(exp,r=>!isRt(r));
   const rtBest=exp=>maxBy(exp,r=>isRt(r));
   const archBest=(exp,m)=>{const rs=(exp?exp.overall:[]).filter(r=>r.model===m&&r.group==='arch');return rs.length?Math.max(...rs.map(x=>x.mAP50)):null;};
+  const sahiBest=exp=>{const s=(exp&&exp.sahi||[]).filter(x=>x.sahi_mAP50!=null);return s.length?s[0]:null;};
 
   // ---- KPI ----
-  const yb1=yoloBest(e1),yb2=yoloBest(e2),yb3=e3&&yoloBest(e3);
-  const rb2=rtBest(e2),rb3=e3&&rtBest(e3);
+  const ygb=yoloBest(g5b),ygp=g5p&&yoloBest(g5p);
+  const yc=yoloBest(c51),rc=rtBest(c51),rct=c51t&&rtBest(c51t);
+  const sahiC=sahiBest(c51t);
   $('#anaKpis').innerHTML=[
-    ['實驗一最佳',`${yb1?yb1.model:'—'}`,`51類 · mAP50 ${fmt(yb1&&yb1.mAP50)}`,'accent'],
-    ['實驗二最佳',`${yb2?yb2.model:'—'}`,`5群 · mAP50 ${fmt(yb2&&yb2.mAP50)}`,'accent'],
-    ['實驗三最佳',`${yb3?yb3.model:'—'}`,`5群改進 · mAP50 ${fmt(yb3&&yb3.mAP50)}`,'accent'],
-    ['關鍵發現','走勢相反',`RT-DETR 峰值在實驗二(${fmt(rb2&&rb2.mAP50)})、實驗三反降(${fmt(rb3&&rb3.mAP50)})`,''],
+    ['大分類最佳（5 群）',`${ygp?ygp.model:(ygb?ygb.model:'—')}`,`改進後 · mAP50 ${fmt((ygp||ygb)&&(ygp||ygb).mAP50)}`,'accent'],
+    ['細項最佳（51 類）',`${yc?yc.model:'—'}`,`基準 · mAP50 ${fmt(yc&&yc.mAP50)}`,'accent'],
+    ['切片反轉（51 類）','RT-DETR 登頂',`rtdetr ${fmt(rc&&rc.mAP50)} → ${fmt(rct&&rct.mAP50)}；YOLO 反崩`,''],
+    ['SAHI 公平指標',`${sahiC?fmt(sahiC.sahi_mAP50):'—'}`,`51類切片全圖評估（標準指標會膨脹）`,''],
   ].map(k=>`<div class="card kpi"><div class="label">${k[0]}</div><div class="val ${k[3]}" style="font-size:20px">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
 
-  // ---- 設定對照（3 欄）----
-  $('#anaSetup').innerHTML=`<thead><tr><th>項目</th><th>實驗一 51 類</th><th>實驗二 5 群</th><th>實驗三 5 群改進</th></tr></thead><tbody>`+
-    [['類別體系','51 類細項','5 群分群','5 群分群'],
-     ['資料集','textile_202511','textile_202606','textile_202606'],
-     ['影像解析度 imgsz','640','640','1280'],
-     ['資料增強','—','—','離線 copy-paste（稀有類補到 800）'],
-     ['訓練輪數','20','20','100'],
-     ['分割 / seed','8:1:1 / 42','8:1:1 / 42','8:1:1 / 42'],
-     ['模型矩陣','13 組','13 組','13 組'],
-    ].map(r=>`<tr><td style="text-align:left">${r[0]}</td><td style="text-align:left">${r[1]}</td><td style="text-align:left">${r[2]}</td><td style="text-align:left">${r[3]}</td></tr>`).join('')+'</tbody>';
+  // ---- 設定對照（5 欄；前三為 5 群系列、後二為 51 類系列）----
+  $('#anaSetup').innerHTML=`<thead><tr><th>項目</th>`+
+    `<th>實驗一<br>5 群基準</th><th>實驗二<br>5 群改進</th><th>實驗三<br>5 群切片</th>`+
+    `<th>實驗四<br>51 類基準</th><th>實驗五<br>51 類切片</th></tr></thead><tbody>`+
+    [['類別體系','5 群分群','5 群分群','5 群分群','51 類細項','51 類細項'],
+     ['資料集','textile_202606','textile_202606','textile_202606','textile_202511','textile_202511'],
+     ['影像解析度 imgsz','640','1280','切片 tile','640','切片 tile'],
+     ['切片 / SAHI','—','—','✓ tiling + SAHI','—','✓ tiling + SAHI'],
+     ['資料增強','—','copy-paste（補到 800）','copy-paste','—','—'],
+     ['正樣本保留 keep_empty','—','—','0.1','—','0.1'],
+     ['訓練輪數','20','100','100','20','20'],
+     ['分割 / seed','8:1:1 / 42','8:1:1 / 42','8:1:1 / 42','8:1:1 / 42','8:1:1 / 42'],
+     ['模型矩陣','13 組','13 組','13 組','13 組','13 組'],
+    ].map(r=>`<tr><td style="text-align:left"><b>${r[0]}</b></td>`+r.slice(1).map(c=>`<td style="text-align:left">${c}</td>`).join('')+'</tr>').join('')+'</tbody>';
 
   renderGroups();
 
-  // ====== 壹、改進步驟 ======
-  const v9n2=g(e2,'yolov9c__none__arch'), v9n3=g(e3,'yolov9c__none__arch');
-  const v8n2=g(e2,'yolov8l__none__arch'), v8n3=g(e3,'yolov8l__none__arch');
-  $('#anaSteps').innerHTML=`
-  <p>實驗三在實驗二（5 群基準）之上，疊加三項針對「小目標 + 類別不平衡」的改進：</p>
+  // ====== 壹、研究路線：先大分類、後細項 ======
+  $('#anaRoute').innerHTML=`
+  <p>原始標註體系是 <b>51 類細項劣化</b>，但細項偵測極難（類別多、樣本長尾、目標細小）。因此本研究採<b>「先大分類、再細項」</b>的兩階段路線：</p>
   <ul>
-    <li><b>① 影像解析度 640 → 1280</b>：bbox 實測 85.7% 的框面積 &lt; 全圖 4%、640 下中位框僅 ~48px；提高解析度讓小劣化在特徵圖上不被降採樣抹除，直攻 recall。</li>
-    <li><b>② 離線 copy-paste 過取樣</b>：只擴增訓練集，把樣本最少的群（生物性 60、色彩性 ~620 框）以合成圖補到約 800，緩解極端不平衡（汙染性 1,775 以上不動）。</li>
-    <li><b>③ 訓練輪數 20 → 100</b>：讓收斂較慢的模型有機會跑到峰值（best.pt 自動取驗證最高點）。</li>
+    <li><b>第一階段——大分類（5 群）</b>：先把 51 細項依「劣化成因」歸併成 5 大群（結構性／色彩性／汙染性／生物性／形變磨耗性）。類別少、每類樣本較足，較容易訓得動，<b>用來驗證可行性、並把改進手段（高解析、copy-paste、切片＋SAHI）逐一試清楚</b>。對應實驗一（基準）→ 二（改進）→ 三（切片＋SAHI）。</li>
+    <li><b>第二階段——細項（51 類）</b>：把第一階段確立的手段帶回原始 51 類，挑戰細粒度偵測。對應實驗四（基準）→ 五（切片＋SAHI）。</li>
   </ul>
-  <p>對 YOLO 系列效果顯著：以 yolov9c/none 為例，mAP50 由 <b class="num">${fmt(v9n2.mAP50)}</b> 升至 <b class="num">${fmt(v9n3.mAP50)}</b>、recall <b class="num">${fmt(v9n2.recall)}</b> → <b class="num">${fmt(v9n3.recall)}</b>（約翻倍）；yolov8l/none 亦由 <b class="num">${fmt(v8n2.mAP50)}</b> → <b class="num">${fmt(v8n3.mAP50)}</b>。但三項同時改動，個別貢獻未拆分，其中「輪數 20→100」很可能是最大功臣。</p>
-  <p class="note">注意：實驗三整體 mAP 仍偏低（~0.13），主因是生物性群測試樣本過少（AP 恆 0）、過擬合與小目標尚未用切片，詳見「陸、限制與建議」。</p>`;
+  <p class="note">兩系列的 mAP 因類別數不同（macro over 5 vs over 51）<b>不可直接比大小</b>；跨系列請看「同系列的趨勢」「逐類別」與「SAHI 全圖公平指標」。</p>`;
 
-  // 改進配對表（e2 vs e3 同名 run）
-  const impr=e3? e2.overall.map(r2=>{const r3=g(e3,r2.run_name);return r3.mAP50!=null&&{
-      model:r2.model,preprocess:r2.preprocess,m2:r2.mAP50,m3:r3.mAP50,dm:+(r3.mAP50-r2.mAP50).toFixed(6),
-      r2:r2.recall,r3:r3.recall,dr:+(r3.recall-r2.recall).toFixed(6)};}).filter(Boolean):[];
-  if(impr.length){
-    const cols=[['model','模型'],['preprocess','預處理'],['m2','mAP50 二'],['m3','mAP50 三'],['dm','Δ mAP50'],['r2','R 二'],['r3','R 三'],['dr','Δ recall']];
-    buildSortableTable($('#anaImprove'),cols,impr,'m3',(r,k)=>{
+  // ====== 貳、5 群系列三步改進 ======
+  const v9n1=g(g5b,'yolov9c__none__arch'), v9n2=g(g5p,'yolov9c__none__arch');
+  const v8n1=g(g5b,'yolov8l__none__arch'), v8n2=g(g5p,'yolov8l__none__arch');
+  const yg5t=g5t&&yoloBest(g5t);
+  $('#anaSteps').innerHTML=`
+  <p>在 5 群大分類上，逐步疊加針對「小目標 + 類別不平衡」的三項手段，形成三組實驗：</p>
+  <ul>
+    <li><b>實驗一 基準</b>（640 / 20ep / 無增強）：建立 5 群可行性基線。</li>
+    <li><b>實驗二 改進</b>＝基準 ＋ <b>① 解析度 640→1280</b>（bbox 實測 85.7% 框面積 &lt; 全圖 4%、640 下中位框僅 ~48px）＋ <b>② 離線 copy-paste</b>（稀有群補到約 800 框，汙染性 ~2,200 不動）＋ <b>③ 輪數 20→100</b>。</li>
+    <li><b>實驗三 切片</b>＝改進 ＋ <b>④ 離線切片 tiling（keep_empty 0.1）＋ SAHI 全圖評估</b>，直攻小目標 recall。</li>
+  </ul>
+  <p>基準→改進對 YOLO 顯著有效：yolov9c/none mAP50 由 <b class="num">${fmt(v9n1.mAP50)}</b> → <b class="num">${fmt(v9n2.mAP50)}</b>、recall <b class="num">${fmt(v9n1.recall)}</b> → <b class="num">${fmt(v9n2.recall)}</b>（約翻倍）；yolov8l/none <b class="num">${fmt(v8n1.mAP50)}</b> → <b class="num">${fmt(v8n2.mAP50)}</b>。實驗三切片的「標準 mAP50」再升到 <b class="num">${fmt(yg5t&&yg5t.mAP50)}</b>（best ${yg5t?yg5t.model:'—'}）、recall <b class="num">${fmt(yg5t&&yg5t.recall)}</b>。</p>
+  <p class="note">⚠️ 切片的「標準指標」是在切好的小圖上計算、會<b>系統性膨脹</b>，不能直接和前兩組比；其真正可比的全圖表現見「陸、SAHI 全圖公平評估」。</p>`;
+
+  // 改進配對表（g5b 基準 / g5p 改進 / g5t 切片(標準) 同名 run）
+  const impr=g5b.overall.map(r1=>{const r2=g(g5p,r1.run_name),r3=g(g5t,r1.run_name);return {
+      model:r1.model,preprocess:r1.preprocess,m1:r1.mAP50,
+      m2:(r2.mAP50!=null?r2.mAP50:null),m3:(r3.mAP50!=null?r3.mAP50:null),
+      dm:(r2.mAP50!=null?+(r2.mAP50-r1.mAP50).toFixed(6):null)};});
+  {
+    const cols=[['model','模型'],['preprocess','預處理'],['m1','基準'],['m2','改進'],['m3','切片(標準*)'],['dm','Δ 基準→改進']];
+    buildSortableTable($('#anaImprove'),cols,impr,'m2',(r,k)=>{
       if(k==='model')return r.model; if(k==='preprocess')return r.preprocess;
-      if(k==='dm'||k==='dr')return dcell(r[k]);
+      if(k==='dm')return dcell(r[k]);
       return `<span class="mono">${fmt(r[k])}</span>`;},0);
-  } else { $('#anaImprove').innerHTML='<tbody><tr><td class="note">無實驗三資料</td></tr></tbody>'; }
+  }
 
-  // ====== 貳、YOLO vs Transformer 跨實驗軌跡 ======
-  const exps=[e1,e2,e3].filter(Boolean);
-  const xlabels=exps.map(e=>e.id==='c51'?'實驗一(51類)':e.id==='g5'?'實驗二(5群)':'實驗三(5群改進)');
+  // ====== 參、進入細項（51 類）：基準 vs 切片 ======
+  const yc51=yoloBest(c51), yc51t=c51t&&yoloBest(c51t);
+  const rc51=rtBest(c51), rc51t=c51t&&rtBest(c51t);
+  $('#anaFine').innerHTML=`
+  <p>把第一階段確立的手段帶回原始 <b>51 類細項</b>。對照基準（實驗四，640）與切片（實驗五）後，出現本研究<b>最戲劇性的發現——切片把 51 類的勝負完全翻面</b>：</p>
+  <ul>
+    <li><b>YOLO（CNN）反而崩了</b>：51 類 best 由實驗四的 <b class="num">${fmt(yc51&&yc51.mAP50)}</b>（${yc51?yc51.model:'—'}）掉到實驗五切片的 <b class="num">${fmt(yc51t&&yc51t.mAP50)}</b>（${yc51t?yc51t.model:'—'}）。</li>
+    <li><b>RT-DETR（Transformer）暴漲登頂</b>：由 <b class="num">${fmt(rc51&&rc51.mAP50)}</b> 拉到 <b class="num">${fmt(rc51t&&rc51t.mAP50)}</b>，一舉超越所有 YOLO 成為實驗五第一名。</li>
+  </ul>
+  <p>切片使每張訓練圖被切成多個子圖：<b>樣本數倍增、目標相對放大</b>——這正是資料飢渴、需要大尺度結構的 Transformer 最缺的東西，故 RT-DETR 受益極大；而原本就靠局部紋理、樣本效率高的 CNN，在切碎、上下文被截斷的子圖上反而失去整圖脈絡而退步。架構層原因見「伍」。</p>`;
+  {
+    const rows=c51.overall.map(r1=>{const r2=g(c51t,r1.run_name);return {
+      model:r1.model,preprocess:r1.preprocess,m1:r1.mAP50,m2:(r2.mAP50!=null?r2.mAP50:null),
+      dm:(r2.mAP50!=null?+(r2.mAP50-r1.mAP50).toFixed(6):null),
+      r1:r1.recall,r2r:(r2.recall!=null?r2.recall:null)};});
+    const cols=[['model','模型'],['preprocess','預處理'],['m1','基準 mAP50'],['m2','切片 mAP50*'],['dm','Δ mAP50'],['r1','基準 R'],['r2r','切片 R*']];
+    buildSortableTable($('#anaFineTable'),cols,rows,'m2',(r,k)=>{
+      if(k==='model')return isRt(r)?`<b style="color:var(--bad)">${r.model}</b>`:r.model;
+      if(k==='preprocess')return r.preprocess;
+      if(k==='dm')return dcell(r[k]);
+      return `<span class="mono">${fmt(r[k])}</span>`;},0);
+  }
+
+  // ====== 肆、YOLO vs Transformer 跨實驗軌跡 ======
+  const g5series=[g5b,g5p,g5t].filter(Boolean);
+  const c51series=[c51,c51t].filter(Boolean);
+  const g5xl=g5series.map(e=>e.id==='g5'?'基準':e.id==='g5p'?'改進':'切片');
+  const c51xl=c51series.map(e=>e.id==='c51'?'基準':'切片');
   const ac=themeAccent(),ac2=themeAccent2();
   const palette=['#2f4a78','#4f7d6a','#c79a3e','#7d4b6d','#b23a2c'];  // 織染色系:靛藍/青磁/赭黃/紫檀/茜紅(rtdetr)
-  mkChart('anaTraj',{type:'line',data:{labels:xlabels,datasets:ARCHS.map((m,idx)=>({
-      label:ARCH_INFO[m].name,data:exps.map(e=>archBest(e,m)),
+  mkChart('anaTraj',{type:'line',data:{labels:g5xl,datasets:ARCHS.map((m,idx)=>({
+      label:ARCH_INFO[m].name,data:g5series.map(e=>archBest(e,m)),
       borderColor:palette[idx],backgroundColor:palette[idx]+'22',borderWidth:m==='rtdetr-l'?3:2,
       borderDash:m==='rtdetr-l'?[6,3]:[],tension:.25,pointRadius:3,spanGaps:true}))},options:baseOpts()});
-  mkChart('anaTraj2',{type:'line',data:{labels:xlabels,datasets:[
-      {label:'YOLO 系列 best (CNN)',data:exps.map(e=>{const b=yoloBest(e);return b?b.mAP50:null;}),borderColor:ac,backgroundColor:ac+'22',borderWidth:3,tension:.25,pointRadius:4,fill:true},
-      {label:'RT-DETR best (Transformer)',data:exps.map(e=>{const b=rtBest(e);return b?b.mAP50:null;}),borderColor:'#d62728',backgroundColor:'#d6272822',borderWidth:3,borderDash:[6,3],tension:.25,pointRadius:4,fill:true}]},
-      options:baseOpts()});
+  mkChart('anaTraj2',{type:'line',data:{labels:c51xl,datasets:ARCHS.map((m,idx)=>({
+      label:ARCH_INFO[m].name,data:c51series.map(e=>archBest(e,m)),
+      borderColor:palette[idx],backgroundColor:palette[idx]+'22',borderWidth:m==='rtdetr-l'?3:2,
+      borderDash:m==='rtdetr-l'?[6,3]:[],tension:.25,pointRadius:4,spanGaps:true}))},options:baseOpts()});
 
-  // 軌跡表
+  // 軌跡表（全 5 實驗）
   const trows=ARCHS.map(m=>({model:ARCH_INFO[m].name,fam:ARCH_INFO[m].fam,
-      e1:archBest(e1,m),e2:archBest(e2,m),e3:e3?archBest(e3,m):null}));
-  $('#anaTrajTable').innerHTML='<thead><tr><th style="text-align:left">架構</th><th>系列</th><th>實驗一</th><th>實驗二</th><th>實驗三</th><th>實驗二→三</th></tr></thead><tbody>'+
+      g5:archBest(g5b,m),g5p:g5p?archBest(g5p,m):null,g5t:g5t?archBest(g5t,m):null,
+      c51:archBest(c51,m),c51t:c51t?archBest(c51t,m):null}));
+  $('#anaTrajTable').innerHTML='<thead><tr><th style="text-align:left">架構</th><th>系列</th>'+
+    '<th>5群基準</th><th>5群改進</th><th>5群切片*</th><th>51類基準</th><th>51類切片*</th><th>51類 基準→切片</th></tr></thead><tbody>'+
     trows.map(r=>`<tr><td style="text-align:left">${r.model}</td><td>${r.fam==='Transformer'?'<b style="color:var(--bad)">Transformer</b>':'CNN'}</td>`+
-      `<td class="mono">${fmt(r.e1)}</td><td class="mono">${fmt(r.e2)}</td><td class="mono">${fmt(r.e3)}</td>`+
-      `<td>${dcell(r.e2!=null&&r.e3!=null?+(r.e3-r.e2).toFixed(6):null)}</td></tr>`).join('')+'</tbody>';
+      `<td class="mono">${fmt(r.g5)}</td><td class="mono">${fmt(r.g5p)}</td><td class="mono">${fmt(r.g5t)}</td>`+
+      `<td class="mono">${fmt(r.c51)}</td><td class="mono">${fmt(r.c51t)}</td>`+
+      `<td>${dcell(r.c51!=null&&r.c51t!=null?+(r.c51t-r.c51).toFixed(6):null)}</td></tr>`).join('')+
+    '</tbody>';
 
-  const rb1=rtBest(e1);
+  const yg5b=yoloBest(g5b), yg5p=g5p&&yoloBest(g5p);
   $('#anaTrajText').innerHTML=`
-  <p><b>同一套改進配方，CNN 與 Transformer 走勢完全相反——這是本研究最清楚的架構訊號。</b></p>
+  <p><b>CNN 與 Transformer 對「同一手段」的反應，依任務粒度而分歧——這是本研究最清楚的架構訊號。</b></p>
   <ul>
-    <li><b>YOLO 系列（CNN）：實驗二 → 三上升。</b>5 群 best mAP50 由 <b class="num">${fmt(yb2&&yb2.mAP50)}</b> 升到 <b class="num">${fmt(yb3&&yb3.mAP50)}</b>；高解析、copy-paste、長訓練對它全是順風。</li>
-    <li><b>RT-DETR（Transformer）：峰值在「最單純」的實驗二。</b>mAP50 軌跡為 ${fmt(rb1&&rb1.mAP50)}(51類) → <b class="num">${fmt(rb2&&rb2.mAP50)}</b>(5群) → ${fmt(rb3&&rb3.mAP50)}(5群改進)。它在類別最少、解析度最低、無合成增強時表現最好；無論是 51 類的複雜匹配，還是實驗三的高解析＋合成圖，每加一層複雜度它就更差。</li>
-    <li><b>交叉解讀：</b>實驗一 RT-DETR 近乎全崩（51 類 × 匈牙利匹配 + 20ep 學不起來）；實驗二類別降到 5、任務最簡單時它才追到 0.033（仍遠落後 CNN）；實驗三的設計升級反而是它的毒藥。CNN 全程穩定領先，且差距在實驗三進一步拉大。</li>
-  </ul>`;
+    <li><b>5 群（大分類）系列：CNN 全程領先、隨改進穩升。</b>YOLO best mAP50 由基準 <b class="num">${fmt(yg5b&&yg5b.mAP50)}</b> → 改進 <b class="num">${fmt(yg5p&&yg5p.mAP50)}</b>；高解析、copy-paste、長訓練對 CNN 全是順風。RT-DETR 在 5 群始終墊底。</li>
+    <li><b>51 類（細項）系列：切片讓勝負翻面。</b>RT-DETR best 由基準 <b class="num">${fmt(rc51&&rc51.mAP50)}</b> 暴漲到切片 <b class="num">${fmt(rc51t&&rc51t.mAP50)}</b>（登頂）；同一切片下 YOLO best 卻由 <b class="num">${fmt(yc51&&yc51.mAP50)}</b> 崩到 <b class="num">${fmt(yc51t&&yc51t.mAP50)}</b>。</li>
+    <li><b>交叉解讀：</b>非切片時，類別越多、目標越小越不利 RT-DETR（51 類基準近乎全崩）；一旦<b>切片把樣本變多、目標放大</b>，資料飢渴的 Transformer 立刻翻身，而靠整圖脈絡與局部紋理的 CNN 在切碎子圖上反而失準。換言之「切片」不是普惠手段，而是<b>架構相依</b>的槓桿。</li>
+  </ul>
+  <p class="note">* 切片的標準 mAP50 在子圖上計算、偏高；跨切片／非切片的公平比較見「陸」。</p>`;
 
-  // ====== 參、架構差異重點原因 ======
+  // ====== 伍、架構差異重點原因：切片是 RT-DETR 的轉捩點 ======
   $('#anaArchWhy').innerHTML=`
-  <p>為什麼同一改進，CNN 受益、Transformer 受害？關鍵在兩者的<b>歸納偏置（inductive bias）</b>與<b>資料/算力需求</b>不同：</p>
+  <p>同一手段在不同粒度對兩架構的效果相反，根源在兩者的<b>歸納偏置（inductive bias）</b>與<b>資料／算力需求</b>不同。最關鍵的分水嶺是<b>切片（tiling）</b>：</p>
   <div style="overflow:auto"><table><thead><tr><th style="text-align:left">面向</th><th style="text-align:left">YOLO 系列（CNN）</th><th style="text-align:left">RT-DETR（Transformer）</th></tr></thead><tbody>
   ${[['局部性先驗','卷積天生假設「劣化是局部紋理」→ 小資料即學得動','全域自注意力、弱局部先驗 → 需大量資料才學到該假設'],
-     ['收斂速度','快，100ep 已足夠到峰值','慢，DETR 家族常需 300–500ep；100ep 仍欠擬合'],
-     ['提高解析度 1280','直接放大小目標（CNN 強項），成本線性','token 數約 ×4、注意力 O(N²)，小資料上優化更難 → 反傷'],
-     ['對 copy-paste 合成圖','局部卷積只看貼上區域，對模糊底圖/貼縫較不敏感','全域注意力把合成圖的整體統計當成虛假上下文 → 受害更深'],
-     ['類別數增加(51類)','dense 預測頭可吸收','匈牙利集合預測在多類×少樣本下匹配極不穩 → 近乎全崩'],
-     ['資料量需求','約 1,200 張訓練圖尚可運作','明顯不足，是它表現低落的根本限制'],
+     ['收斂速度','快，100ep 已足夠到峰值','慢，DETR 家族常需 300–500ep；20–100ep 易欠擬合'],
+     ['類別數增加(51類，非切片)','dense 預測頭可吸收','匈牙利集合預測在多類×少樣本下匹配極不穩 → 近乎全崩'],
+     ['<b>切片 tiling（轉捩點）</b>','切碎子圖截斷整圖脈絡、上下文流失 → 在 51 類反而<b>退步</b>','子圖<b>樣本倍增＋目標相對放大</b>，正好補足資料飢渴 → 在 51 類<b>暴漲登頂</b>'],
+     ['高解析／copy-paste','放大小目標、線性成本，多為順風','token O(N²)、把合成統計當虛假上下文，5 群時仍不利'],
+     ['資料量需求','約 1,200 張訓練圖尚可運作','非切片時明顯不足；切片擴增後才追上'],
     ].map(r=>`<tr><td style="text-align:left"><b>${r[0]}</b></td><td style="text-align:left">${r[1]}</td><td style="text-align:left">${r[2]}</td></tr>`).join('')}
   </tbody></table></div>
-  <p style="margin-top:10px"><b>一句話</b>：改進配方（高解析＋合成增強＋長訓練的「大數據式」做法）本質上對<b>樣本效率高、局部性強的 CNN 有利</b>，對<b>資料飢渴、全域建模的 Transformer 不利</b>。在這種「小資料 + 小目標 + 細粒度」的文物織品場景，CNN（尤其 yolov9c/yolov8l）是明顯更穩健的選擇；RT-DETR 要公平競爭，需要的是「更多真實標註資料 + 數百 epoch」，而非本研究這種增強策略。</p>`;
+  <p style="margin-top:10px"><b>一句話</b>：是否「切片」決定了誰勝出。<b>非切片＋細粒度</b>（51 類基準）對 CNN 有利、對 Transformer 是災難；<b>切片</b>把小資料變多、小目標放大，反而餵飽了資料飢渴的 RT-DETR、卻奪走 CNN 賴以判讀的整圖脈絡，於是 51 類勝負翻面。但要注意——<b>切片的標準指標被膨脹</b>，回到 SAHI 全圖公平評估後，兩者的絕對水準都仍低（見陸）。實務選型仍須結合公平指標與逐類別表現綜合判斷。</p>`;
 
-  // 架構卡（三實驗 best）
+  // 架構卡（5 群基準/切片 + 51 類基準/切片 best）
   $('#anaArch').innerHTML=ARCHS.map(m=>{const a=ARCH_INFO[m];
-    const b1=archBest(e1,m),b2=archBest(e2,m),b3=e3?archBest(e3,m):null;
+    const bg=archBest(g5b,m),bgt=g5t?archBest(g5t,m):null,bc=archBest(c51,m),bct=c51t?archBest(c51t,m):null;
     const famcol=a.fam==='Transformer'?'var(--bad)':'var(--accent)';
     return `<div class="card archcard"><h4>${a.name} <span class="badge" style="color:${famcol}">${a.fam}</span></h4><div class="spec">${a.spec}</div>
       <div class="chg">🔧 ${a.chg}</div>
-      <div class="nums"><div><div class="note">實驗一</div><div class="v mono">${fmt(b1)}</div></div>
-      <div><div class="note">實驗二</div><div class="v mono">${fmt(b2)}</div></div>
-      <div><div class="note">實驗三</div><div class="v mono">${fmt(b3)}</div></div></div>
+      <div class="nums"><div><div class="note">5群基準</div><div class="v mono">${fmt(bg)}</div></div>
+      <div><div class="note">5群切片*</div><div class="v mono">${fmt(bgt)}</div></div>
+      <div><div class="note">51類基準</div><div class="v mono">${fmt(bc)}</div></div>
+      <div><div class="note">51類切片*</div><div class="v mono">${fmt(bct)}</div></div></div>
       <p>${a.mech}</p></div>`;}).join('');
 
-  // ====== 肆、Precision / Recall 深入討論（尤其 Transformer）======
+  // ====== 陸、SAHI 全圖公平評估 ======
   (function(){
-    const exps2=[e1,e2,e3].filter(Boolean);
-    const xl={c51:'實驗一 51類',g5:'實驗二 5群',g5p:'實驗三 5群改進'};
+    const sg=sahiBest(g5t), sc=sahiBest(c51t);
+    const sgStd=sg&&g(g5t,sg.run_name), scStd=sc&&g(c51t,sc.run_name);
+    const rows=[];
+    if(sg) rows.push(['實驗三 5 群切片',sg,sgStd]);
+    if(sc) rows.push(['實驗五 51 類切片',sc,scStd]);
+    if(!rows.length){ $('#anaSahi').innerHTML='<p class="note">尚無 SAHI 資料。</p>'; $('#anaSahiTable').innerHTML=''; return; }
+    $('#anaSahiTable').innerHTML='<thead><tr><th style="text-align:left">實驗（最佳 SAHI 模型）</th><th>標準 mAP50</th><th>SAHI mAP50</th><th>SAHI recall@0.5</th><th>SAHI recall@0.3</th><th>有效類別</th></tr></thead><tbody>'+
+      rows.map(([lab,s,std])=>`<tr><td style="text-align:left">${lab}<br><span class="note">${s.model} / ${s.preprocess}</span></td>`+
+        `<td class="mono">${fmt(std&&std.mAP50)}</td><td class="mono"><b>${fmt(s.sahi_mAP50)}</b></td>`+
+        `<td class="mono">${fmt(s['sahi_recall@0.5'])}</td><td class="mono"><b>${fmt(s['sahi_recall@0.3'])}</b></td>`+
+        `<td class="mono">${s.n_valid_classes}</td></tr>`).join('')+'</tbody>';
+    const gGap=sg&&sgStd?(sgStd.mAP50/sg.sahi_mAP50):null;
+    $('#anaSahi').innerHTML=`
+    <p>切片訓練的「標準 mAP50」是在<b>切好的小圖</b>上計算的——目標相對放大、背景單純，分數會<b>系統性膨脹</b>，無法和非切片實驗比較。<b>SAHI（Slicing Aided Hyper Inference）</b>讓模型以滑窗推論再把框<b>合併回原始全圖</b>評估，才是真正可比的指標。落差非常大：</p>
+    <ul>
+      ${sg?`<li><b>5 群切片（實驗三）</b>：標準 mAP50 <b class="num">${fmt(sgStd&&sgStd.mAP50)}</b> → SAHI mAP50 <b class="num">${fmt(sg.sahi_mAP50)}</b>${gGap?`（約縮水 ${gGap.toFixed(1)} 倍）`:''}、SAHI recall@0.3 <b class="num">${fmt(sg['sahi_recall@0.3'])}</b>。亮眼的切片分數回到全圖後大幅回落。</li>`:''}
+      ${sc?`<li><b>51 類切片（實驗五）</b>：最佳 SAHI 為 <b>${sc.model}</b>，標準 mAP50 <b class="num">${fmt(scStd&&scStd.mAP50)}</b> → SAHI mAP50 <b class="num">${fmt(sc.sahi_mAP50)}</b>、SAHI recall@0.3 達 <b class="num">${fmt(sc['sahi_recall@0.3'])}</b>（在所有設定中最高）。即便縮水，RT-DETR＋切片＋SAHI 仍是<b>全圖召回</b>最好的組合。</li>`:''}
+    </ul>
+    <p class="note">啟示：未來凡用切片訓練，<b>一律以 SAHI 全圖指標彙報</b>，避免被子圖分數高估；recall@0.3（容許較鬆定位）顯示模型其實「找得到、定位待加強」，與本應用「先別漏看」的目標一致。</p>`;
+  })();
+
+  // ====== 柒、Precision / Recall 深入討論（尤其 Transformer）======
+  (function(){
+    const exps2=[g5b,g5p,g5t,c51,c51t].filter(Boolean);
+    const xl={g5:'實驗一 5群基準',g5p:'實驗二 5群改進',g5t:'實驗三 5群切片*',c51:'實驗四 51類基準',c51t:'實驗五 51類切片*'};
     const prRows=exps2.map(e=>{const y=yoloBest(e),r=rtBest(e);return{
       exp:xl[e.id]||e.label, yP:y?y.precision:null,yR:y?y.recall:null,rP:r?r.precision:null,rR:r?r.recall:null};});
     $('#anaPRtable').innerHTML='<thead><tr><th style="text-align:left">實驗</th><th>YOLO Precision</th><th>YOLO Recall</th><th>RT-DETR Precision</th><th>RT-DETR Recall</th></tr></thead><tbody>'+
       prRows.map(r=>`<tr><td style="text-align:left">${r.exp}</td><td class="mono">${fmt(r.yP)}</td><td class="mono">${fmt(r.yR)}</td><td class="mono" style="color:var(--bad)"><b>${fmt(r.rP)}</b></td><td class="mono" style="color:var(--bad)"><b>${fmt(r.rR)}</b></td></tr>`).join('')+'</tbody>';
-    const r1=rtBest(e1), r2=rtBest(e2), r3=e3&&rtBest(e3);
-    const y1=yoloBest(e1), y3=e3&&yoloBest(e3), y2=yoloBest(e2);
+    const rc=rtBest(c51), rct=c51t&&rtBest(c51t), rg=rtBest(g5b);
+    const yc=yoloBest(c51), yg=yoloBest(g5b), ygp=g5p&&yoloBest(g5p);
     $('#anaPRtext').innerHTML=`
-    <p><b>先講最重要的前提：低 recall 是「全體模型的共同問題」，不是 RT-DETR 獨有的。</b>連表現最好的 YOLO，recall 也只有約 <b class="num">${fmt(y3&&y3.recall)}</b>（漏看約八成劣化）。這是本專案<b>首要待解的瓶頸</b>，根因是小目標（85.7% 框 &lt; 全圖 4%），預計用<b>切片（tiling）</b>解決（尚未測試）。所以下面講 RT-DETR 的 recall 問題時，請記得：YOLO 的 recall 也不高，只是<b>沒那麼病態</b>。</p>
-    <p>把 mAP 拆成 precision（報得準不準）與 recall（找得全不全）後，RT-DETR 的問題在於<b>「程度」與「型態」</b>：在類別多時 recall 病態崩塌，且伴隨「高 P 假象」。</p>
+    <p><b>先講最重要的前提：低 recall 是「全體模型的共同問題」，不是 RT-DETR 獨有的。</b>連表現最好的 YOLO，recall 也只有約 <b class="num">${fmt(ygp&&ygp.recall)}</b>（漏看約八成劣化）。這是本專案<b>首要待解的瓶頸</b>，根因是小目標（85.7% 框 &lt; 全圖 4%）；本研究已用<b>切片（tiling）＋ SAHI</b>初步驗證——SAHI recall@0.3 可拉到 <b class="num">${fmt(rct&&((c51t.sahi||[]).find(s=>s.run_name===rct.run_name)||{})['sahi_recall@0.3'])}</b>，方向正確但仍待深化。</p>
+    <p>把 mAP 拆成 precision（報得準不準）與 recall（找得全不全）後，RT-DETR 的問題在於<b>「程度」與「型態」</b>：在「細粒度 × 非切片」時 recall 病態崩塌，且伴隨「高 P 假象」。</p>
     <h4 style="color:var(--bad);margin:12px 0 4px">RT-DETR：高 precision、近零 recall ＝ 欠擬合的警訊（不是優點）</h4>
     <ul>
-      <li><b>51 類時最極端</b>：RT-DETR precision 高達 <b class="num">${fmt(r1&&r1.precision)}</b>，但 recall 僅 <b class="num">${fmt(r1&&r1.recall)}</b>。意思是它<b>幾乎不開口，只在極少數最有把握的目標上預測</b>，所以開口的多半對（precision 漂亮），卻漏掉約 <b class="num">${r1?Math.round((1-r1.recall)*100):'~99'}%</b> 的劣化。<b>這個高 precision 是假象</b>——它是「嚴重少報」的副作用，不代表模型好。</li>
-      <li><b>成因</b>：DETR 家族用「固定數量 object queries ＋ 匈牙利一對一匹配」。在 51 類 × 樣本少 × 20 epochs 下，模型學不會把 query 指派到多數物件，輸出極度稀疏 → recall 趨近 0。這是 DETR 在資料/訓練不足時的典型行為。</li>
-      <li><b>任務簡化後 precision 反而崩</b>：5 群時 RT-DETR 開始多預測（recall 升到 <b class="num">${fmt(r2&&r2.recall)}</b>），但錯報也變多（precision 跌到 <b class="num">${fmt(r2&&r2.precision)}</b>）。它<b>沒有「又準又全」的甜蜜點</b>——不是高 P 低 R，就是低 P 低 R。實驗三更是兩者皆低（P ${fmt(r3&&r3.precision)} / R ${fmt(r3&&r3.recall)}）。</li>
+      <li><b>51 類非切片（實驗四）時最極端</b>：RT-DETR precision 高達 <b class="num">${fmt(rc&&rc.precision)}</b>，但 recall 僅 <b class="num">${fmt(rc&&rc.recall)}</b>——它<b>幾乎不開口、只報最有把握的少數目標</b>，所以開口多半對（precision 漂亮），卻漏掉約 <b class="num">${rc?Math.round((1-rc.recall)*100):'~98'}%</b> 的劣化。<b>這個高 precision 是「嚴重少報」的副作用，不是模型好。</b></li>
+      <li><b>成因</b>：DETR 家族用「固定數量 object queries ＋ 匈牙利一對一匹配」。在 51 類 × 樣本少 × 20ep、且未切片時，模型學不會把 query 指派到多數物件，輸出極度稀疏 → recall 趨近 0。</li>
+      <li><b>切片是解方</b>：實驗五對 51 類切片後，RT-DETR recall 升到 <b class="num">${fmt(rct&&rct.recall)}</b>、mAP50 暴漲到 <b class="num">${fmt(rct&&rct.mAP50)}</b>——子圖樣本倍增、目標放大正好補足它的資料飢渴，病態少報被解除。</li>
     </ul>
-    <h4 style="margin:12px 0 4px">YOLO：recall 同樣低，但 P/R 較均衡、且改進能同時拉高</h4>
+    <h4 style="margin:12px 0 4px">YOLO：recall 同樣低，但 P/R 較均衡、且大分類改進能同時拉高</h4>
     <ul>
-      <li><b>YOLO 的 recall 也不高</b>（${fmt(y2&&y2.recall)}~${fmt(y3&&y3.recall)}，一樣漏看約八成）——這點與全體一致；但它的 precision（${fmt(y1&&y1.precision)}~${fmt(y3&&y3.precision)}）與 recall 呈<b>均衡式低分</b>，不會出現 RT-DETR 那種「高 P、近零 R」的病態組合。</li>
-      <li><b>改進配方（1280＋copy-paste＋100ep）能同時拉高兩者</b>：實驗二→三，YOLO precision ${fmt(y2&&y2.precision)} → <b class="num">${fmt(y3&&y3.precision)}</b>、recall ${fmt(y2&&y2.recall)} → <b class="num">${fmt(y3&&y3.recall)}</b>。同一配方對 RT-DETR 則 precision 仍低、recall 反降——P/R 層級再次印證架構分歧。</li>
+      <li><b>YOLO 的 recall 也不高</b>（多在 ${fmt(yg&&yg.recall)}~${fmt(ygp&&ygp.recall)}，一樣漏看約八成）——與全體一致；但它的 precision 與 recall 呈<b>均衡式低分</b>，不會出現 RT-DETR 那種「高 P、近零 R」的病態組合。</li>
+      <li><b>5 群改進配方（1280＋copy-paste＋100ep）能同時拉高兩者</b>：實驗一→二，YOLO precision ${fmt(yg&&yg.precision)} → <b class="num">${fmt(ygp&&ygp.precision)}</b>、recall ${fmt(yg&&yg.recall)} → <b class="num">${fmt(ygp&&ygp.recall)}</b>。但在 51 類切片時，CNN 反被切碎子圖截斷脈絡而退步——P/R 層級再次印證「切片是架構相依的槓桿」。</li>
     </ul>
     <h4 style="margin:12px 0 4px">對本應用的意涵：recall 才是關鍵（且全體都待加強）</h4>
-    <p>本系統的目的是<b>輔助文物普查、別漏看劣化</b>，因此 <b>recall 比 precision 重要</b>（漏報＝文物未被檢出，比誤報嚴重）。據此：<b>所有模型的 recall（~0.1–0.19）都還不夠</b>，是共同待解的首要問題（靠切片）。RT-DETR 的處境更糟：在 51 類時 recall 病態崩到 <b class="num">${fmt(r1&&r1.recall)}</b>（漏看約 ${r1?Math.round((1-r1.recall)*100):99}%）、且只敢報極少數，<b>無論 precision 多高都不堪用</b>。不過要持平地說——在 5 群時 RT-DETR 的 recall（${fmt(r2&&r2.recall)}）與 YOLO（${fmt(y2&&y2.recall)}）<b>差距不大、兩者都低</b>；RT-DETR 真正的災難是出現在「類別多」的場景。最終 mAP 同時懲罰漏看與誤報，而 RT-DETR 的 mAP 低主要被 <b>recall</b> 拖垮。</p>`;
+    <p>本系統的目的是<b>輔助文物普查、別漏看劣化</b>，因此 <b>recall 比 precision 重要</b>（漏報＝文物未被檢出，比誤報嚴重）。據此：<b>非切片設定下所有模型 recall 都不夠</b>，而<b>切片＋SAHI 是目前看到最有效的召回槓桿</b>——尤其搭配 RT-DETR。最終 mAP 同時懲罰漏看與誤報；在「細粒度＋切片」場景，RT-DETR 反成召回最佳，而在「大分類」場景仍是 CNN 較穩健。架構選型應<b>依任務粒度與是否切片而定</b>，而非一概而論。</p>`;
   })();
 
-  // ====== 肆、各架構擅長的標籤類型（逐類別比對，用實驗一 51 類最細緻）======
+  // ====== 捌、各架構擅長的標籤類型（逐類別比對，用 51 類基準最細緻）======
   (function(){
-    const yb=yoloBest(e1), rb=rtBest(e1);
-    if(!yb||!rb){ $('#anaLabel').innerHTML='<p class="note">缺實驗一資料。</p>'; return; }
+    const yb=yoloBest(c51), rb=rtBest(c51);
+    if(!yb||!rb){ $('#anaLabel').innerHTML='<p class="note">缺 51 類基準資料。</p>'; return; }
     const yp={}, rp={};
-    e1.per_class.filter(x=>x.run_name===yb.run_name).forEach(x=>yp[x.class_name]={m:x.mAP50,inst:x.instances});
-    e1.per_class.filter(x=>x.run_name===rb.run_name).forEach(x=>rp[x.class_name]=x.mAP50);
+    c51.per_class.filter(x=>x.run_name===yb.run_name).forEach(x=>yp[x.class_name]={m:x.mAP50,inst:x.instances});
+    c51.per_class.filter(x=>x.run_name===rb.run_name).forEach(x=>rp[x.class_name]=x.mAP50);
     const names=Object.keys(yp);
     const rtWins=names.filter(cn=>(rp[cn]||0)>yp[cn].m+1e-9);
     const shortName=cn=>cn.replace(/[A-Za-z;].*$/,'').trim()||cn;
     $('#anaLabel').innerHTML=`
-    <p><b>先講最重要的事實：在三組實驗的每一個標籤上，YOLO 的 mAP50 都 ≥ RT-DETR——<b class="num">沒有任何一類</b>是 Transformer 勝出。</b>（實驗一 51 類逐類比對：RT-DETR 勝出 ${rtWins.length} 類。）所以「各自擅長」指的是<b>相對強項與能否抓到</b>，不是誰贏。以下用實驗一 51 類（最細緻）呈現。</p>`;
+    <p><b>以「51 類基準（實驗四，非切片）」逐類別比對——這是粒度最細、最能看出各架構強項的設定。</b>在這個設定的每一個標籤上，YOLO 的 mAP50 都 ≥ RT-DETR（RT-DETR 勝出 ${rtWins.length} 類）。所以這裡的「各自擅長」指的是<b>相對強項與能否抓到</b>。（注意：切片後 RT-DETR 在 51 類整體反超，但逐類別細項仍以下表的 CNN 強項為主；切片改變的是「整體召回」而非「誰更會認哪一類」。）</p>`;
     // YOLO top 8
     const ytop=names.map(cn=>({cn,m:yp[cn].m,inst:yp[cn].inst,r:rp[cn]||0})).sort((a,b)=>b.m-a.m).slice(0,8);
     $('#anaLabelY').innerHTML='<thead><tr><th style="text-align:left">標籤</th><th>樣本</th><th>YOLO</th><th>RT-DETR</th></tr></thead><tbody>'+
@@ -809,34 +916,35 @@ function renderAnalysis(){
     <p><b>但即使在 RT-DETR 自己最好的「摺痕」，YOLO 仍約為它的 2.5 倍</b>（${fmt(rp['30.摺痕Creases']||rnz[0]&&rnz[0].r)} vs ${fmt(yp['30.摺痕Creases']?yp['30.摺痕Creases'].m:'')}）。結論：此資料集上 Transformer 沒有任何標籤勝出，只是在大面積高頻類別上「比較沒那麼弱」。對需要抓「小而清晰」文物劣化的目標，CNN 是明確更合適的架構。</p>`;
   })();
 
-  // ====== 伍、類別粒度效應（實驗一 vs 二）======
-  const v8c1=g(e1,'yolov8l__none__arch');
-  const v9cc1=g(e1,'yolov9c__clahe+denoise__arch');
+  // ====== 玖、類別粒度效應（大分類 5 群 vs 細項 51 類，同為 20ep/640 基準）======
+  const v8c1=g(c51,'yolov8l__none__arch'), v8g1=g(g5b,'yolov8l__none__arch');
+  const ycb=yoloBest(c51), ygb2=yoloBest(g5b);
   $('#anaOverall').innerHTML=`
-  <p>固定 20 epochs/640、唯一變因為「51 類 → 5 群」時，分群假說（合併光譜連續的模糊類別應提升效能）<b>並未獲支持</b>：13 組多數 mAP 下降（例 yolov8l/none ${fmt(v8c1.mAP50)} → ${fmt(g(e2,'yolov8l__none__arch').mAP50)}）。三個機制：</p>
+  <p>把兩條系列的<b>基準（同為 20 epochs / 640 / 無增強，唯一差別是 51 類 vs 5 群）</b>對照，會看到一個反直覺現象：<b>大分類（5 群）的整體 macro mAP 反而低於細項（51 類）</b>——51 類 best <b class="num">${fmt(ycb&&ycb.mAP50)}</b> vs 5 群 best <b class="num">${fmt(ygb2&&ygb2.mAP50)}</b>（例 yolov8l/none ${fmt(v8c1.mAP50)} → ${fmt(v8g1.mAP50)}）。「合併模糊類別應更容易」的直覺<b>並未獲支持</b>，三個機制：</p>
   <ul>
-    <li><b>巨集平均的「稀有類紅利」消失。</b>51 類中樣本少但視覺鮮明的類（鬚邊 AP50≈0.59、糾結≈0.58）拉高 macro 平均；合併後被群內難例稀釋——屬統計組成效應。</li>
-    <li><b>類內視覺異質上升。</b>分群依「成因」而非「外觀」：結構性群含破洞/鬚邊/副料鬆脫等互不相似者，特徵分佈變多峰，決策邊界更難。</li>
+    <li><b>巨集平均的「稀有類紅利」消失。</b>51 類中樣本少但視覺鮮明的類（鬚邊 AP50≈0.59、糾結≈0.58）拉高 macro 平均；歸併成 5 群後被群內難例稀釋——屬統計組成效應（macro over 51 vs over 5 本就不可直接比）。</li>
+    <li><b>類內視覺異質上升。</b>分群依「成因」而非「外觀」：結構性群含破洞／鬚邊／副料鬆脫等互不相似者，特徵分佈多峰，決策邊界更難。</li>
     <li><b>框尺度異質拖累定位。</b>同群框從針孔到整片縐摺跨數量級，迴歸分支失去尺度先驗，mAP50-95 受害最深。</li>
   </ul>
-  <p>但實驗三證明：分群的效益要在「樣本量 × 解析度 × 訓練輪數」充足時才顯現——同樣 5 群，升級設計後 best mAP50 由 ${fmt(yb2&&yb2.mAP50)} 回到 ${fmt(yb3&&yb3.mAP50)}，接近實驗一 51 類水準，且 recall 更高。</p>`;
+  <p>這正是「先大分類」階段的價值所在：它揭露了「<b>分群不會自動變簡單</b>」，並讓我們把改進手段（高解析、copy-paste、切片＋SAHI）在較易訓練的 5 群上試清楚，再帶回 51 類。改進後 5 群 best mAP50 由 ${fmt(ygb2&&ygb2.mAP50)} 升到 ${fmt(yg5p&&yg5p.mAP50)}、recall 更高，證明效益要在「樣本量 × 解析度 × 訓練輪數」充足時才顯現。</p>`;
 
-  // ====== 伍、樣本瓶頸 ======
+  // ====== 拾、樣本瓶頸 ======
   const pcx=(exp,run,cid)=>(exp&&exp.per_class.filter(x=>x.run_name===run).find(x=>x.class_id===cid))||{};
-  const best3=e3?yoloBest(e3):yoloBest(e2); const be=e3||e2;
-  const bio=pcx(be,best3.run_name,3), defw=pcx(be,best3.run_name,4), stain=pcx(be,best3.run_name,2);
+  const be=g5p||g5b; const bestG=yoloBest(be);
+  const bio=pcx(be,bestG.run_name,3), defw=pcx(be,bestG.run_name,4), stain=pcx(be,bestG.run_name,2);
   $('#anaSample').innerHTML=`
-  <p>分群把 51 類長尾壓成 5 群，但<b>不平衡只是被搬移</b>：生物性劣化全資料僅 <b class="num">75</b> 框、測試集只剩 <b class="num">${bio.test_instances??'4'}</b> 框，最佳模型該群 AP50 = <b class="num">${fmt(bio.mAP50)}</b>（恆 0）。<b>copy-paste 只能補訓練集、補不了測試集的 4 框</b>，所以它對帳面 mAP 幾乎無感——這是實驗三 mAP 仍低的關鍵之一。剔除生物性後，4 群 macro 約可由 0.136 升到 ~0.17。</p>
+  <p>大分類把 51 類長尾壓成 5 群，但<b>不平衡只是被搬移</b>：生物性劣化全資料僅 <b class="num">75</b> 框、測試集只剩 <b class="num">${bio.test_instances??'4'}</b> 框，最佳模型該群 AP50 = <b class="num">${fmt(bio.mAP50)}</b>（恆 0）。<b>copy-paste 只能補訓練集、補不了測試集的 4 框</b>，所以它對帳面 mAP 幾乎無感——這是 5 群改進 mAP 仍偏低的關鍵之一。剔除生物性後，4 群 macro 約可由 0.136 升到 ~0.17。</p>
   <p>反觀樣本足且視覺同質的群最好：形變磨耗性（1,612 框）AP50 = <b class="num">${fmt(defw.mAP50)}</b>、汙染性（2,218 框）AP50 = <b class="num">${fmt(stain.mAP50)}</b>——「視覺同質＋樣本量」才是有效的分群軸線。可檢討：黴害／黴斑同源卻被拆進兩群；生物性樣本過少，宜併入汙染性或補標註。</p>`;
 
-  // ====== 陸、限制與建議 ======
+  // ====== 拾壹、研究限制與下一步建議 ======
   $('#anaLimit').innerHTML=`
   <ul>
+    <li><b>切片＋SAHI 已驗證、但尚未跑滿。</b>5 群切片（實驗三）目前僅一組做了 SAHI 全圖評估；應補齊全矩陣，並一律以 SAHI 指標彙報（標準切片分數會膨脹，見陸）。</li>
+    <li><b>「切片是架構相依槓桿」需在更多輪數下複核。</b>51 類切片讓 RT-DETR 反超 CNN（實驗五僅 20ep）。下一步：51 類切片＋100ep，確認 RT-DETR 的優勢是否穩定、CNN 退步是否可由更長訓練或重疊切片（保留脈絡）挽回。</li>
     <li><b>生物性群測試樣本過少（4 框）</b>使其 AP 恆 0、拖低 macro 約兩成。建議併入汙染性、或改分層分割保證稀有類 test ≥ 一定數量；報告時並列「公允 mAP（僅算 test 足量類別）」。</li>
-    <li><b>過擬合是現階段天花板。</b>實驗三驗證 loss 自早期即不再下降、mAP 峰值約 ep85 後回落（best.pt 已自動取峰值）。再加 epoch 無益；應從小模型 / 合成圖品質 / 正則化著手。</li>
-    <li><b>小目標仍未用切片。</b>recall 僅約 0.2（80% 漏看）。離線切片（tiling）+ SAHI 全圖評估是針對小目標、尚未測試的最大槓桿（notebook 已備，預設關閉）。</li>
-    <li><b>架構選型建議：</b>本場景優先 CNN（yolov9c / yolov8l）；RT-DETR 不建議，除非能取得更多真實標註並訓練數百 epoch。</li>
-    <li><b>效度註記：</b>本頁數字均為獨立測試集實測；三實驗 mAP 因類別數不同不可直接比大小（51 類 macro over 51 vs 5 群 over 5），跨實驗請看同任務（實驗二↔三）或公允 mAP。解析文字為討論初稿，引用前請核對 CSV。</li>
+    <li><b>過擬合仍是天花板。</b>5 群改進的驗證 loss 自早期即不再下降、mAP 峰值約 ep85 後回落（best.pt 已自動取峰值）。應從小模型／合成圖品質／正則化著手。</li>
+    <li><b>架構選型建議：</b>依任務粒度與是否切片而定——<b>大分類（不切片）優先 CNN（yolov9c／yolov8l）</b>；<b>細項＋切片可考慮 RT-DETR</b>（本研究中召回最佳）。</li>
+    <li><b>效度註記：</b>本頁數字均為獨立測試集實測；不同類別數的 mAP（macro over 5 vs over 51）與切片／非切片的標準 mAP <b>不可直接比大小</b>，跨設定請看同系列趨勢、逐類別或 SAHI 全圖指標。解析文字為討論初稿，引用前請核對 CSV。</li>
   </ul>`;
 }
 
