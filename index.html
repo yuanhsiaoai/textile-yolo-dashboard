@@ -216,7 +216,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     </div>
     <div class="row2">
       <div class="card panel"><h3>訓練曲線 · mAP</h3><canvas id="curveMap" height="200"></canvas></div>
-      <div class="card panel"><h3>訓練曲線 · 損失</h3><canvas id="curveLoss" height="200"></canvas></div>
+      <div class="card panel"><h3>訓練曲線 · 損失</h3><canvas id="curveLoss" height="200"></canvas><p class="legend" id="lossNote"></p></div>
     </div>
     <h2 class="section">評估圖（測試集）</h2>
     <div class="imgs" id="modelImgs"></div>
@@ -546,9 +546,15 @@ function renderModelCharts(){
   mkChart('curveMap',{type:'line',data:{labels:c.epoch,datasets:[
     {label:'mAP50',data:c.mAP50,borderColor:ac,tension:.25,pointRadius:0,borderWidth:2},
     {label:'mAP50-95',data:c['mAP50-95'],borderColor:ac2,tension:.25,pointRadius:0,borderWidth:2}]},options:baseOpts()});
+  // RT-DETR(DETR 家族)記 giou_loss/l1_loss、無 box_loss；此處對 RT-DETR 顯示 giou_loss
+  const isRtRun=/rtdetr/i.test(run);
+  const lname=isRtRun?'giou_loss':'box_loss';
   mkChart('curveLoss',{type:'line',data:{labels:c.epoch,datasets:[
-    {label:'train box_loss',data:c.train_box_loss,borderColor:ac,tension:.25,pointRadius:0,borderWidth:2},
-    {label:'val box_loss',data:c.val_box_loss,borderColor:ac2,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:2}]},options:baseOpts()});
+    {label:'train '+lname,data:c.train_box_loss,borderColor:ac,tension:.25,pointRadius:0,borderWidth:2},
+    {label:'val '+lname,data:c.val_box_loss,borderColor:ac2,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:2}]},options:baseOpts()});
+  const ln=$('#lossNote'); if(ln) ln.textContent=isRtRun
+    ? 'RT-DETR 為 DETR 家族，定位損失記為 giou_loss + l1_loss（無 box_loss）；此處顯示 giou_loss。與 YOLO 的 box_loss 量綱不同，不可跨架構比絕對值。'
+    : 'YOLO 定位損失為 box_loss（DFL/CIoU）。';
 }
 
 /* ================= CLASS ANALYSIS ================= */
