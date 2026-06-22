@@ -179,6 +179,7 @@ input[type=range]{flex:1;accent-color:var(--accent)}
       <button data-tab="cls">類別分析</button>
       <button data-tab="analysis">學術解析</button>
       <button data-tab="models">模型介紹</button>
+      <button data-tab="dcfe">工業對照</button>
       <button data-tab="predict">即時預測</button>
     </nav>
     <div class="expswitch" id="expSwitch"></div>
@@ -323,6 +324,26 @@ input[type=range]{flex:1;accent-color:var(--accent)}
     <div class="card panel prose" id="modelsLineage"></div>
     <h2 class="section">各架構詳解與文獻</h2>
     <div id="modelsCards"></div>
+  </section>
+
+  <!-- DCFE 工業對照（實驗八） -->
+  <section class="tab" id="dcfe">
+    <p class="expnote">實驗八：把<b>工業織物瑕疵偵測</b>論文 DCFE-YOLO 的改良架構，搬到我們的 <b>5 群文物劣化</b>資料上，與原版 YOLOv8 對照，檢驗「為工業布料調的 YOLO 改良，能不能遷移到文物小資料」。</p>
+    <h2 class="section">壹、引用論文：DCFE-YOLO（工業織物瑕疵偵測）</h2>
+    <div class="card panel prose" id="dcfePaper"></div>
+    <h2 class="section">貳、實驗八設定（架構遷移測試）</h2>
+    <div class="card panel prose" id="dcfeSetup"></div>
+    <h2 class="section">參、模型比較（我們的 5 群獨立 test 集）</h2>
+    <div class="row2">
+      <div class="card panel" style="overflow:auto"><h3>DCFE-YOLO vs 原版 YOLOv8</h3><table id="dcfeTable"><thead></thead><tbody></tbody></table>
+        <p class="note" style="margin:10px 2px 0">同 5 群資料／同 8:1:1(seed42)／同 1024／同 100ep／同線上增強；唯一變因＝架構。Δ 紅＝DCFE 較差。</p></div>
+      <div class="card panel"><h3>訓練 mAP50 曲線（100 epochs）</h3><canvas id="dcfeCurve" height="220"></canvas>
+        <p class="legend">DCFE 全程低於原版——不是沒收斂，是架構在小資料上本就更差。</p></div>
+    </div>
+    <h2 class="section">肆、放進我們實驗的脈絡</h2>
+    <div class="card panel prose" id="dcfeContext"></div>
+    <h2 class="section">伍、結論</h2>
+    <div class="card panel prose" id="dcfeVerdict"></div>
   </section>
 
   <!-- PREDICT -->
@@ -998,6 +1019,69 @@ async function runPredict(){
 }
 function setStatus(t,c){ const s=$('#predStatus'); s.className='status'+(c?' '+c:''); s.textContent=t; }
 
+/* ================= DCFE 工業對照（實驗八，獨立資料） ================= */
+const DCFE = {
+  // 我們的 5 群獨立 test 集（result_DCFE/DCFE_vs_base_summary.csv）
+  metrics: [ // [指標, DCFE, 原版yolov8l]
+    ['mAP50', 0.0809, 0.1417],
+    ['mAP50-95', 0.0289, 0.0516],
+    ['precision', 0.3858, 0.4634],
+    ['recall', 0.1151, 0.1796],
+  ],
+  ep:   [1,6,11,16,21,26,31,36,41,46,51,56,61,66,71,76,81,86,91,96,100],
+  dcfe: [0.0003,0.0011,0.0024,0.006,0.0079,0.0045,0.0177,0.0222,0.0213,0.0287,0.0246,0.0384,0.0422,0.0476,0.0476,0.0629,0.071,0.0635,0.0655,0.0845,0.0856],
+  base: [0.0077,0.0141,0.0147,0.0301,0.0398,0.0375,0.0563,0.065,0.0814,0.0831,0.0791,0.081,0.1181,0.1105,0.1208,0.1063,0.1243,0.1203,0.1162,0.1151,0.1209],
+};
+function renderDCFE(){
+  $('#dcfePaper').innerHTML=`
+  <p><b>DCFE-YOLO</b>（Lian et al., 2024, <i>PLOS ONE</i> 19(12): e0314525）是一篇<b>工業織布生產線品管</b>的瑕疵偵測論文，以 YOLOv8n 為基礎加三個模組：</p>
+  <ul>
+    <li><b>DSC_C2f</b>：把 <b>Dynamic Snake Convolution（動態蛇形卷積）</b>放進 backbone，增強對「細長、細微」瑕疵的敏感度。</li>
+    <li><b>CPCA</b>：SPPF 後的通道優先卷積注意力（多尺度深度可分離卷積）。</li>
+    <li><b>FE_C2f</b>：neck 結合 PConv（部分卷積）＋ EMA（高效多尺度注意力）。</li>
+  </ul>
+  <p>資料：3,575 → 5,022 張（離線增強擴充），<b>5 類工業織布瑕疵</b>：Hole(破洞)／Stain(污漬)／Yarn defect(紗疵)／Knot(結頭)／Float(浮紗)，來源 TILDA＋阿里天池＋廣東某廠。論文回報 <b>mAP50 ≈ 89.4%</b>（較 YOLOv8n +2.9%）。<a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0314525" target="_blank" rel="noopener">[原文連結]</a></p>
+  <p class="note">注意：那 89.4% 是「工業布料、受控打光、平整布面、5 類乾淨、樣本多」的局面；與我們「文物、雜亂背景、長尾、小資料」本質不同，<b>不可直接拿來對標</b>。且論文未說明離線增強是否在分割前做，存在資料洩漏（高估）疑慮。</p>`;
+
+  $('#dcfeSetup').innerHTML=`
+  <p>我們把 DCFE 的<b>架構</b>（yolov8l-DCFE）原封不動搬來，在<b>我們的 5 群文物資料（textile_202606）</b>上訓練，並設一個<b>原版 yolov8l 對照組</b>。兩者<b>完全同條件</b>：同 8:1:1 分割(seed=42)、imgsz 1024、100 epochs、SGD、相同線上增強（旋轉/翻轉/mixup + 調小 HSV）、皆載入 COCO 預訓練可對應層。<b>唯一變因＝架構</b>，差異即 DCFE 的淨效果。</p>
+  <p class="note">方法學上比原論文嚴謹：先分割、增強只在訓練時線上套用、test 完全未被增強碰過 → 無資料洩漏。</p>`;
+
+  // 比較表
+  const rows=DCFE.metrics.map(([k,d,b])=>({k,d,b,delta:+(d-b).toFixed(4)}));
+  $('#dcfeTable').innerHTML='<thead><tr><th style="text-align:left">指標</th><th>DCFE-YOLO</th><th>原版 YOLOv8l</th><th>Δ(DCFE−原版)</th></tr></thead><tbody>'+
+    rows.map(r=>`<tr><td style="text-align:left">${r.k}</td><td class="mono">${fmt(r.d)}</td><td class="mono"><b>${fmt(r.b)}</b></td><td>${dcell(r.delta)}</td></tr>`).join('')+'</tbody>';
+
+  // 訓練曲線
+  const ac=themeAccent(),ac2=themeAccent2();
+  mkChart('dcfeCurve',{type:'line',data:{labels:DCFE.ep,datasets:[
+    {label:'原版 YOLOv8l',data:DCFE.base,borderColor:ac,backgroundColor:ac+'22',borderWidth:3,tension:.25,pointRadius:0,fill:true},
+    {label:'DCFE-YOLO',data:DCFE.dcfe,borderColor:'#b23a2c',backgroundColor:'#b23a2c22',borderWidth:3,borderDash:[6,3],tension:.25,pointRadius:0,fill:true}]},
+    options:baseOpts()});
+
+  // 放進我們實驗脈絡（取 g5p 最佳當參照）
+  const byId=id=>EXPS.find(e=>e.id===id);
+  const g5p=byId('g5p'); const isRt=r=>(''+r.model).includes('rtdetr');
+  const ybest=g5p?g5p.overall.filter(r=>!isRt(r)).reduce((a,b)=>b.mAP50>a.mAP50?b:a):null;
+  $('#dcfeContext').innerHTML=`
+  <p>把實驗八放回我們的 5 群系列看：</p>
+  <ul>
+    <li><b>原版 yolov8l（實驗八對照）</b>：mAP50 <b class="num">0.142</b>、recall <b class="num">0.180</b> — 與我們既有 5 群最佳<b>同級</b>${ybest?`（實驗二 g5p 最佳 ${ybest.model} mAP50 <b class="num">${fmt(ybest.mAP50)}</b>）`:''}，證明這條 pipeline 健康、結果可信。</li>
+    <li><b>DCFE-YOLO</b>：mAP50 僅 <b class="num">0.081</b>、recall <b class="num">0.115</b> — <b>四個指標全面低於原版</b>（mAP50 −43%），且訓練全程曲線都壓在原版下方。</li>
+  </ul>
+  <p>換言之，<b>工業織布調出來的架構改良，搬到文物小資料不但沒幫助、反而明顯變差</b>。</p>`;
+
+  $('#dcfeVerdict').innerHTML=`
+  <p><b>結論：DCFE 架構在本任務不採用。</b>三個原因：</p>
+  <ul>
+    <li><b>小資料吃不下更複雜的架構</b>：DSConv+CPCA+FE_C2f 參數更多、優化更難；~1,473 張上換來的是更差的泛化（與 RT-DETR 同一教訓）。</li>
+    <li><b>破壞了預訓練初始化</b>（很可能是主因）：原版能完整載入 COCO 預訓練；DCFE 改了 backbone/neck → 只能部分載入，被改的層形同從零開始，小資料救不回。</li>
+    <li><b>領域不匹配</b>：為「乾淨布料、5 類、5000+ 張」調的設計，水土不服於「雜亂文物、長尾、小資料」。</li>
+  </ul>
+  <p>這是個<b>有價值的負面結果</b>：工業織物瑕疵偵測的架構改良，<b>無法遷移</b>到小資料的文物織品劣化偵測；原版 YOLO ＋ 完整預訓練更優。實務選型仍以 yolov9c／yolov8l 為主。</p>
+  <p class="note">但書：單次跑、無交叉驗證 → 有變異；惟 Δ 在四指標一致且夠大（mAP 差 43%），訊號穩，可下結論。數值來源 result_DCFE/DCFE_vs_base_summary.csv（我們 5 群獨立 test 集）。</p>`;
+}
+
 /* ================= BOOT ================= */
 fetch('data.json').then(r=>r.json()).then(d=>{
   EXPS=d.experiments;
@@ -1007,6 +1091,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   setExp(0);               // 填 DATA + 渲染 總覽/模型/類別 各分頁
   renderAnalysis();        // 跨實驗學術解析（一次渲染，不隨切換器變動）
   renderModels();          // 模型介紹（靜態內容＋已查證文獻）
+  renderDCFE();            // 工業對照（實驗八，獨立資料）
   initPredict();
   if(location.hash) activateTab(location.hash.slice(1));
   $('#foot').innerHTML=`資料來源：result/（實驗一：51 類）與 result_all/（實驗二：5 群）之 comparison / per_class / class_frequency CSV · 每實驗 ${EXPS[0].models.length} 組模型 · 訓練 ${EXPS[0].epochs_note} epochs · 靜態儀表板由 build_site.py 產生。`;
